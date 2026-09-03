@@ -9,6 +9,20 @@ import { useLibraryStore } from '../../store/libraryStore';
 import { useTrainingStore } from '../../store/trainingStore';
 import { useUserStore } from '../../store/userStore';
 
+function PlanRow({ e }: { e: Exercise }) {
+  return (
+    <div className="row">
+      <div>
+        <div style={{ fontWeight: 600 }}>{e.getName()}</div>
+        <div className="muscle-line">
+          {e.getTrainGroup()} · 推荐 {e.getSets()}组×{e.getReps()}次 · MET {e.getMetValue()}
+        </div>
+      </div>
+      <span className="badge">{e.getTrainGroup()}</span>
+    </div>
+  );
+}
+
 export default function PlanPage() {
   const user = useUserStore((s) => s.user);
   const { todayTrain, addWorkoutLog, createToday } = useTrainingStore();
@@ -19,14 +33,21 @@ export default function PlanPage() {
   const [g2, setG2] = useState('背部');
   const [singleTarget, setSingleTarget] = useState('胸部');
   const [plan, setPlan] = useState<Exercise[] | Exercise[][] | null>(null);
+  const [planMsg, setPlanMsg] = useState('');
+  const [planMsgOk, setPlanMsgOk] = useState(false);
 
   const [filterMuscle, setFilterMuscle] = useState('');
   const [filterThreshold, setFilterThreshold] = useState('70');
   const [filterResult, setFilterResult] = useState<Exercise[] | null>(null);
 
-  const [actCode, setActCode] = useState(user ? user.getActivityCode() : 3);
+  const [actCode, setActCode] = useState(
+    user && user.getActivityCode() >= 1 && user.getActivityCode() <= 4
+      ? user.getActivityCode()
+      : 3,
+  );
   const [dietMode, setDietMode] = useState<Mode>('MAINTAIN');
   const [dietResult, setDietResult] = useState<ReturnType<typeof calculateFullNutrition> | null>(null);
+  const [dietErr, setDietErr] = useState('');
 
   const groups = ['胸部', '背部', '腿部', '核心', '肩部', '手臂'];
 
@@ -47,44 +68,65 @@ export default function PlanPage() {
         break;
     }
     setPlan(result);
+    setPlanMsg('');
     setFilterResult(null);
   };
 
   const importPlan = (list: Exercise[]) => {
     if (!todayTrain) {
-      alert('请先在「训练」页新建今日训练，再导入计划');
+      setPlanMsg('请先在「训练」页新建今日训练，再导入计划');
+      setPlanMsgOk(false);
       return;
     }
     for (const ex of list) {
       addWorkoutLog(new WorkoutLog(ex));
     }
-    alert(`已导入 ${list.length} 个动作到今日训练`);
+    setPlanMsg(`已导入 ${list.length} 个动作到今日训练`);
+    setPlanMsgOk(true);
   };
 
   const buildDiet = () => {
     if (!user) {
-      alert('请先创建个人档案');
+      setDietErr('请先创建个人档案');
+      setDietResult(null);
       return;
     }
-    const todayBurn = todayTrain ? todayTrain.getStrengthBurn() + todayTrain.getCardioBurn() : 0;
-    const result = calculateFullNutrition(user, dietMode, actCode, todayBurn);
-    setDietResult(result);
+    try {
+      const todayBurn = todayTrain ? todayTrain.getStrengthBurn() + todayTrain.getCardioBurn() : 0;
+      const result = calculateFullNutrition(user, dietMode, actCode, todayBurn);
+      setDietResult(result);
+      setDietErr('');
+    } catch (e) {
+      setDietResult(null);
+      setDietErr(e instanceof Error ? e.message : '生成失败，请检查活动等级');
+    }
   };
 
-  const showPlan = (planMode: number) => {
+  const renderPlanResult = () => {
     if (plan === null) return null;
-    if (planMode === 4 && Array.isArray(plan) && plan[0] && Array.isArray(plan[0])) {
+    const isPPL = planMode === 4 && Array.isArray(plan) && plan[0] && Array.isArray(plan[0]);
+    if (isPPL) {
       const days = plan as Exercise[][];
       const labels = ['推 Push · 胸肩三头', '拉 Pull · 背二头', '腿 Leg · 腿臀核心'];
       return (
         <>
           {days.map((day, i) => (
             <div className="list-item" key={i}>
-              <div className="list-item-title">{labels[i]}</div>
-              <div className="muscle-line">
-                {day.map((e) => `${e.getName()}(${e.getSets()}×${e.getReps()})`).join('  ')}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 8,
+                }}
+              >
+                <span className="list-item-title">{labels[i]}</span>
+                <span className="badge">{day.length} 个动作</span>
               </div>
-              <button className="btn-sm" style={{ marginTop: 8 }} onClick={() => importPlan(day)}>
+              {day.map((e) => (
+                <PlanRow key={e.getName()} e={e} />
+              ))}
+              <button className="btn-block btn-secondary" style={{ marginTop: 10 }} onClick={() => importPlan(day)}>
                 导入今日训练
               </button>
             </div>
@@ -95,15 +137,29 @@ export default function PlanPage() {
     const list = plan as Exercise[];
     return (
       <div className="list-item">
-        <div className="muscle-line">
-          {list.map((e) => `${e.getName()}(${e.getSets()}×${e.getReps()})`).join('  ')}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 8,
+          }}
+        >
+          <span className="list-item-title">生成计划</span>
+          <span className="badge">共 {list.length} 个动作</span>
         </div>
-        <button className="btn-sm" style={{ marginTop: 8 }} onClick={() => importPlan(list)}>
+        {list.map((e) => (
+          <PlanRow key={e.getName()} e={e} />
+        ))}
+        <button className="btn-block btn-secondary" style={{ marginTop: 10 }} onClick={() => importPlan(list)}>
           导入今日训练
         </button>
       </div>
     );
   };
+
+  const strengthBurn = todayTrain ? todayTrain.getStrengthBurn() : 0;
+  const cardioBurn = todayTrain ? todayTrain.getCardioBurn() : 0;
 
   return (
     <div className="page">
@@ -151,7 +207,8 @@ export default function PlanPage() {
         <button className="btn-block" onClick={generatePlan}>
           生成计划
         </button>
-        {plan && <div style={{ marginTop: 12 }}>{showPlan(planMode)}</div>}
+        {planMsg && <div className={planMsgOk ? 'ok' : 'error'}>{planMsg}</div>}
+        <div style={{ marginTop: 12 }}>{renderPlanResult()}</div>
       </div>
 
       <div className="card">
@@ -203,6 +260,7 @@ export default function PlanPage() {
         <button className="btn-block" onClick={buildDiet}>
           生成方案
         </button>
+        {dietErr && <div className="error">{dietErr}</div>}
 
         {dietResult && (
           <div style={{ marginTop: 14 }}>
@@ -246,21 +304,26 @@ export default function PlanPage() {
                 </span>
               </div>
             ))}
-            <button
-              className="btn-block btn-secondary"
-              style={{ marginTop: 10 }}
-              onClick={() => {
-                if (!todayTrain) {
-                  alert('请先新建今日训练，或今日暂无训练按休息日计算');
-                  return;
-                }
-                alert(
-                  `今日训练消耗 ${Math.round(todayTrain.getStrengthBurn() + todayTrain.getCardioBurn())} kcal 已计入方案`,
-                );
-              }}
-            >
-              查看今日训练消耗明细
-            </button>
+
+            <h3>已计入的训练消耗</h3>
+            {todayTrain ? (
+              <>
+                <div className="row">
+                  <span className="muted">力量训练消耗</span>
+                  <span>{Math.round(strengthBurn)} kcal</span>
+                </div>
+                <div className="row">
+                  <span className="muted">有氧训练消耗</span>
+                  <span>{Math.round(cardioBurn)} kcal</span>
+                </div>
+                <div className="row">
+                  <span className="muted">合计已计入</span>
+                  <span>{Math.round(strengthBurn + cardioBurn)} kcal</span>
+                </div>
+              </>
+            ) : (
+              <p className="muted">今日暂无训练，按休息日标准计算</p>
+            )}
           </div>
         )}
       </div>

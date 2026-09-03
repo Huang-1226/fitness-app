@@ -92,8 +92,11 @@ export const useTrainingStore = create<TrainingState>()((set, get) => ({
     const dateKey = t.getDate();
     await trainingsTable.put({ date: dateKey, data: trainingToDTO(t) });
     await trainingsTable.delete(TODAY_KEY);
-    const history = [trainingFromDTO(trainingToDTO(t)), ...get().history];
-    set({ todayTrain: null, history });
+    const archived = trainingFromDTO(trainingToDTO(t));
+    set({
+      todayTrain: null,
+      history: [archived, ...get().history.filter((h) => h.getDate() !== dateKey)],
+    });
   },
 
   deleteTraining: async (date) => {

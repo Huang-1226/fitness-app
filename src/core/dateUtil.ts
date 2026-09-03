@@ -10,3 +10,11 @@ export function daysBetween(fromISO: string, toISO: string): number {
   const to = new Date(toISO + 'T00:00:00');
   return Math.round((to.getTime() - from.getTime()) / 86400000);
 }
+
+export function addDaysISO(iso: string, days: number): string {
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+}

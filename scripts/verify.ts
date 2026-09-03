@@ -4,7 +4,7 @@ import { calculateFullNutrition, getTargetCalories } from '../src/core/nutrition
 import { DailyTraining } from '../src/core/dailyTraining';
 import { WorkoutLog } from '../src/core/workoutLog';
 import { CardioRecord } from '../src/core/cardioRecord';
-import { todayISO } from '../src/core/dateUtil';
+import { todayISO, addDaysISO } from '../src/core/dateUtil';
 
 function assertClose(actual: number, expected: number, label: string) {
   const ok = Math.abs(actual - expected) < 0.01;
@@ -48,6 +48,9 @@ assertClose(result.targetCal, p.getPreciseTDEE(3, 0) + 250, 'gain muscle calorie
 
 const t = new DailyTraining(p);
 assertTrue(t.getDate() === todayISO(), 'today date');
+assertTrue(addDaysISO('2026-03-01', -1) === '2026-02-28', 'addDaysISO cross-month');
+assertTrue(addDaysISO('2026-01-01', -1) === '2025-12-31', 'addDaysISO cross-year');
+assertTrue(addDaysISO('2026-03-01', 7) === '2026-03-08', 'addDaysISO forward');
 const squat = lib.getExerciseByName('杠铃深蹲')!;
 const log = new WorkoutLog(squat);
 log.addSet(60, 10, 2);

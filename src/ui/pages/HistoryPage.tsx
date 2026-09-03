@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { daysBetween, todayISO } from '../../core/dateUtil';
+import { addDaysISO, daysBetween, todayISO } from '../../core/dateUtil';
 import { useTrainingStore } from '../../store/trainingStore';
 
 export default function HistoryPage() {
@@ -8,19 +8,18 @@ export default function HistoryPage() {
 
   const stats = useMemo(() => {
     const today = todayISO();
-    const sevenDayAgo = new Date(today + 'T00:00:00');
-    sevenDayAgo.setDate(sevenDayAgo.getDate() - 7);
-    const agoISO = sevenDayAgo.toISOString().slice(0, 10);
+    const agoISO = addDaysISO(today, -7);
 
+    const daySet = new Set<string>();
     let totalBurn = 0;
-    let trainDayCount = 0;
     for (const t of history) {
       const date = t.getDate();
       if (date >= agoISO) {
-        trainDayCount++;
+        daySet.add(date);
         totalBurn += t.getStrengthBurn() + t.getCardioBurn();
       }
     }
+    const trainDayCount = daySet.size;
     const avgBurn = trainDayCount > 0 ? totalBurn / trainDayCount : 0;
     return { trainDayCount, totalBurn, avgBurn };
   }, [history]);
