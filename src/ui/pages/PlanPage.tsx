@@ -1,24 +1,53 @@
+import { ClipboardList, Utensils, Wand2 } from 'lucide-react';
 import { useState } from 'react';
-import type { Exercise } from '../../core/exercise';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import type { Exercise } from '@/core/exercise';
 import {
   calculateFullNutrition,
   type Mode,
-} from '../../core/nutritionCalculator';
-import { WorkoutLog } from '../../core/workoutLog';
-import { useLibraryStore } from '../../store/libraryStore';
-import { useTrainingStore } from '../../store/trainingStore';
-import { useUserStore } from '../../store/userStore';
+} from '@/core/nutritionCalculator';
+import { WorkoutLog } from '@/core/workoutLog';
+import { useLibraryStore } from '@/store/libraryStore';
+import { useTrainingStore } from '@/store/trainingStore';
+import { useUserStore } from '@/store/userStore';
+import { Select } from '@/ui/components/Select';
+import { Stat } from '@/ui/components/Stat';
 
 function PlanRow({ e }: { e: Exercise }) {
   return (
-    <div className="row">
+    <div className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0">
       <div>
-        <div style={{ fontWeight: 600 }}>{e.getName()}</div>
-        <div className="muscle-line">
+        <div className="font-semibold">{e.getName()}</div>
+        <div className="mt-0.5 text-xs text-muted-foreground">
           {e.getTrainGroup()} · 推荐 {e.getSets()}组×{e.getReps()}次 · MET {e.getMetValue()}
         </div>
       </div>
-      <span className="badge">{e.getTrainGroup()}</span>
+      <Badge variant="secondary">{e.getTrainGroup()}</Badge>
+    </div>
+  );
+}
+
+function Message({ ok, text }: { ok: boolean; text: string }) {
+  if (!text) return null;
+  return (
+    <div
+      className={
+        ok
+          ? 'rounded-lg border border-success/40 bg-success/10 px-3 py-2.5 text-sm text-success'
+          : 'rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive'
+      }
+    >
+      {text}
     </div>
   );
 }
@@ -109,51 +138,37 @@ export default function PlanPage() {
       const days = plan as Exercise[][];
       const labels = ['推 Push · 胸肩三头', '拉 Pull · 背二头', '腿 Leg · 腿臀核心'];
       return (
-        <>
+        <div className="space-y-2.5">
           {days.map((day, i) => (
-            <div className="list-item" key={i}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 8,
-                }}
-              >
-                <span className="list-item-title">{labels[i]}</span>
-                <span className="badge">{day.length} 个动作</span>
+            <div key={i} className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="font-semibold">{labels[i]}</span>
+                <Badge variant="secondary">{day.length} 个动作</Badge>
               </div>
               {day.map((e) => (
                 <PlanRow key={e.getName()} e={e} />
               ))}
-              <button className="btn-block btn-secondary" style={{ marginTop: 10 }} onClick={() => importPlan(day)}>
+              <Button className="mt-2.5 w-full" variant="secondary" onClick={() => importPlan(day)}>
                 导入今日训练
-              </button>
+              </Button>
             </div>
           ))}
-        </>
+        </div>
       );
     }
     const list = plan as Exercise[];
     return (
-      <div className="list-item">
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 8,
-          }}
-        >
-          <span className="list-item-title">生成计划</span>
-          <span className="badge">共 {list.length} 个动作</span>
+      <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="font-semibold">生成计划</span>
+          <Badge variant="secondary">共 {list.length} 个动作</Badge>
         </div>
         {list.map((e) => (
           <PlanRow key={e.getName()} e={e} />
         ))}
-        <button className="btn-block btn-secondary" style={{ marginTop: 10 }} onClick={() => importPlan(list)}>
+        <Button className="mt-2.5 w-full" variant="secondary" onClick={() => importPlan(list)}>
           导入今日训练
-        </button>
+        </Button>
       </div>
     );
   };
@@ -162,176 +177,224 @@ export default function PlanPage() {
   const cardioBurn = todayTrain ? todayTrain.getCardioBurn() : 0;
 
   return (
-    <div className="page">
-      <div className="page-title">📋 计划 & 饮食</div>
+    <div className="px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))]">
+      <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold">
+        <ClipboardList className="size-6 text-primary" />
+        计划 & 饮食
+      </h1>
 
-      <div className="card">
-        <div className="card-title">训练计划生成</div>
-        <label>模式</label>
-        <select value={planMode} onChange={(e) => setPlanMode(Number(e.target.value))}>
-          <option value={1}>全身训练</option>
-          <option value={2}>双部位分化</option>
-          <option value={3}>单肌群专攻</option>
-          <option value={4}>推拉腿三分化 PPL</option>
-        </select>
-        {planMode === 2 && (
-          <div className="grid-2">
-            <div>
-              <label>部位 1</label>
-              <select value={g1} onChange={(e) => setG1(e.target.value)}>
-                {groups.map((g) => (
-                  <option key={g}>{g}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label>部位 2</label>
-              <select value={g2} onChange={(e) => setG2(e.target.value)}>
-                {groups.map((g) => (
-                  <option key={g}>{g}</option>
-                ))}
-              </select>
-            </div>
+      <Card className="gap-0 rounded-xl border-border py-0 shadow-sm">
+        <CardHeader className="px-4 pt-4">
+          <CardTitle className="flex items-center gap-1.5 text-base">
+            <Wand2 className="size-4 text-primary" />
+            训练计划生成
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 p-4 pt-0">
+          <div className="space-y-1.5">
+            <Label>模式</Label>
+            <Select value={planMode} onChange={(e) => setPlanMode(Number(e.target.value))}>
+              <option value={1}>全身训练</option>
+              <option value={2}>双部位分化</option>
+              <option value={3}>单肌群专攻</option>
+              <option value={4}>推拉腿三分化 PPL</option>
+            </Select>
           </div>
-        )}
-        {planMode === 3 && (
-          <div>
-            <label>目标肌群</label>
-            <select value={singleTarget} onChange={(e) => setSingleTarget(e.target.value)}>
-              {groups.map((g) => (
-                <option key={g}>{g}</option>
+          {planMode === 2 && (
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="space-y-1.5">
+                <Label>部位 1</Label>
+                <Select value={g1} onChange={(e) => setG1(e.target.value)}>
+                  {groups.map((g) => (
+                    <option key={g}>{g}</option>
+                  ))}
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>部位 2</Label>
+                <Select value={g2} onChange={(e) => setG2(e.target.value)}>
+                  {groups.map((g) => (
+                    <option key={g}>{g}</option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+          )}
+          {planMode === 3 && (
+            <div className="space-y-1.5">
+              <Label>目标肌群</Label>
+              <Select value={singleTarget} onChange={(e) => setSingleTarget(e.target.value)}>
+                {groups.map((g) => (
+                  <option key={g}>{g}</option>
+                ))}
+              </Select>
+            </div>
+          )}
+          <Button className="w-full" onClick={generatePlan}>
+            生成计划
+          </Button>
+          <Message ok={planMsgOk} text={planMsg} />
+          {renderPlanResult()}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-3 gap-0 rounded-xl border-border py-0 shadow-sm">
+        <CardHeader className="px-4 pt-4">
+          <CardTitle className="text-base">按肌肉筛选主打动作</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 p-4 pt-0">
+          <div className="space-y-1.5">
+            <Label>目标肌肉</Label>
+            <Input
+              value={filterMuscle}
+              onChange={(e) => setFilterMuscle(e.target.value)}
+              placeholder="如 胸大肌 / 背阔肌"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>最低发力占比 (%)</Label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              value={filterThreshold}
+              onChange={(e) => setFilterThreshold(e.target.value)}
+            />
+          </div>
+          <Button
+            className="w-full"
+            onClick={() => {
+              setFilterResult(library.findMainExerciseByMuscle(filterMuscle, Number(filterThreshold)));
+              setPlan(null);
+            }}
+          >
+            筛选
+          </Button>
+          {filterResult && (
+            <div>
+              {filterResult.length === 0 ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">无匹配动作</p>
+              ) : (
+                filterResult.map((e) => (
+                  <div
+                    className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0"
+                    key={e.getName()}
+                  >
+                    <span>{e.getName()}</span>
+                    <Badge variant="secondary">{e.getTrainGroup()}</Badge>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-3 gap-0 rounded-xl border-border py-0 shadow-sm">
+        <CardHeader className="px-4 pt-4">
+          <CardTitle className="flex items-center gap-1.5 text-base">
+            <Utensils className="size-4 text-primary" />
+            个性化饮食方案
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 p-4 pt-0">
+          <div className="space-y-1.5">
+            <Label>活动等级（默认取档案）</Label>
+            <Select value={actCode} onChange={(e) => setActCode(Number(e.target.value))}>
+              <option value={1}>1 久坐</option>
+              <option value={2}>2 轻度活动</option>
+              <option value={3}>3 中度活动</option>
+              <option value={4}>4 高强度活动</option>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>目标</Label>
+            <Select value={dietMode} onChange={(e) => setDietMode(e.target.value as Mode)}>
+              <option value="LOSE_FAT">减脂</option>
+              <option value="MAINTAIN">维持</option>
+              <option value="GAIN_MUSCLE">增肌</option>
+            </Select>
+          </div>
+          <Button className="w-full" onClick={buildDiet}>
+            生成方案
+          </Button>
+          {dietErr && <Message ok={false} text={dietErr} />}
+
+          {dietResult && (
+            <div className="space-y-3 pt-1">
+              {dietResult.warn && (
+                <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm text-warning">
+                  {dietResult.warn}
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2.5">
+                <Stat value={`${Math.round(dietResult.targetCal)}`} label="每日热量 kcal" />
+                <Stat value={`${Math.round(dietResult.proteinG)}g`} label="蛋白质" />
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <Stat value={`${Math.round(dietResult.fatG)}g`} label="脂肪" />
+                <Stat value={`${Math.round(dietResult.carbG)}g`} label="碳水" />
+              </div>
+
+              <p className="font-semibold">三餐分配 (3:4:3)</p>
+              {(
+                [
+                  ['早餐', 0.3],
+                  ['午餐', 0.4],
+                  ['晚餐', 0.3],
+                ] as const
+              ).map(([label, ratio]) => (
+                <div
+                  className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0"
+                  key={label}
+                >
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className="text-right">
+                    {Math.round(dietResult.targetCal * ratio)} kcal · 蛋白质
+                    {Math.round(dietResult.proteinG * ratio)}g · 碳水
+                    {Math.round(dietResult.carbG * ratio)}g · 脂肪
+                    {Math.round(dietResult.fatG * ratio)}g
+                  </span>
+                </div>
               ))}
-            </select>
-          </div>
-        )}
-        <button className="btn-block" onClick={generatePlan}>
-          生成计划
-        </button>
-        {planMsg && <div className={planMsgOk ? 'ok' : 'error'}>{planMsg}</div>}
-        <div style={{ marginTop: 12 }}>{renderPlanResult()}</div>
-      </div>
 
-      <div className="card">
-        <div className="card-title">按肌肉筛选主打动作</div>
-        <label>目标肌肉</label>
-        <input value={filterMuscle} onChange={(e) => setFilterMuscle(e.target.value)} placeholder="如 胸大肌 / 背阔肌" />
-        <label>最低发力占比 (%)</label>
-        <input type="number" inputMode="decimal" value={filterThreshold} onChange={(e) => setFilterThreshold(e.target.value)} />
-        <button
-          className="btn-block"
+              <p className="pt-1 font-semibold">已计入的训练消耗</p>
+              {todayTrain ? (
+                <>
+                  <div className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0">
+                    <span className="text-muted-foreground">力量训练消耗</span>
+                    <span>{Math.round(strengthBurn)} kcal</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0">
+                    <span className="text-muted-foreground">有氧训练消耗</span>
+                    <span>{Math.round(cardioBurn)} kcal</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0">
+                    <span className="text-muted-foreground">合计已计入</span>
+                    <span>{Math.round(strengthBurn + cardioBurn)} kcal</span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">今日暂无训练，按休息日标准计算</p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {todayTrain === null && (
+        <div className="mt-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm text-warning">
+          提示：导入计划前，请先在「训练」页新建今日训练
+        </div>
+      )}
+      {todayTrain === null && (
+        <Button
+          className="mt-2.5 w-full"
           onClick={() => {
-            setFilterResult(library.findMainExerciseByMuscle(filterMuscle, Number(filterThreshold)));
-            setPlan(null);
+            if (user) createToday();
           }}
         >
-          筛选
-        </button>
-        {filterResult && (
-          <div style={{ marginTop: 12 }}>
-            {filterResult.length === 0 ? (
-              <div className="empty">无匹配动作</div>
-            ) : (
-              filterResult.map((e) => (
-                <div className="row" key={e.getName()}>
-                  <span>{e.getName()}</span>
-                  <span className="badge">{e.getTrainGroup()}</span>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="card">
-        <div className="card-title">个性化饮食方案</div>
-        <label>活动等级（默认取档案）</label>
-        <select value={actCode} onChange={(e) => setActCode(Number(e.target.value))}>
-          <option value={1}>1 久坐</option>
-          <option value={2}>2 轻度活动</option>
-          <option value={3}>3 中度活动</option>
-          <option value={4}>4 高强度活动</option>
-        </select>
-        <label>目标</label>
-        <select value={dietMode} onChange={(e) => setDietMode(e.target.value as Mode)}>
-          <option value="LOSE_FAT">减脂</option>
-          <option value="MAINTAIN">维持</option>
-          <option value="GAIN_MUSCLE">增肌</option>
-        </select>
-        <button className="btn-block" onClick={buildDiet}>
-          生成方案
-        </button>
-        {dietErr && <div className="error">{dietErr}</div>}
-
-        {dietResult && (
-          <div style={{ marginTop: 14 }}>
-            {dietResult.warn && <div className="warn">{dietResult.warn}</div>}
-            <div className="grid-2">
-              <div className="stat">
-                <div className="stat-value">{Math.round(dietResult.targetCal)}</div>
-                <div className="stat-label">每日热量 kcal</div>
-              </div>
-              <div className="stat">
-                <div className="stat-value">{Math.round(dietResult.proteinG)}g</div>
-                <div className="stat-label">蛋白质</div>
-              </div>
-            </div>
-            <div className="grid-2" style={{ marginTop: 10 }}>
-              <div className="stat">
-                <div className="stat-value">{Math.round(dietResult.fatG)}g</div>
-                <div className="stat-label">脂肪</div>
-              </div>
-              <div className="stat">
-                <div className="stat-value">{Math.round(dietResult.carbG)}g</div>
-                <div className="stat-label">碳水</div>
-              </div>
-            </div>
-
-            <h3>三餐分配 (3:4:3)</h3>
-            {(
-              [
-                ['早餐', 0.3],
-                ['午餐', 0.4],
-                ['晚餐', 0.3],
-              ] as const
-            ).map(([label, ratio]) => (
-              <div className="row" key={label}>
-                <span className="muted">{label}</span>
-                <span>
-                  {Math.round(dietResult.targetCal * ratio)} kcal · 蛋白质
-                  {Math.round(dietResult.proteinG * ratio)}g · 碳水
-                  {Math.round(dietResult.carbG * ratio)}g · 脂肪
-                  {Math.round(dietResult.fatG * ratio)}g
-                </span>
-              </div>
-            ))}
-
-            <h3>已计入的训练消耗</h3>
-            {todayTrain ? (
-              <>
-                <div className="row">
-                  <span className="muted">力量训练消耗</span>
-                  <span>{Math.round(strengthBurn)} kcal</span>
-                </div>
-                <div className="row">
-                  <span className="muted">有氧训练消耗</span>
-                  <span>{Math.round(cardioBurn)} kcal</span>
-                </div>
-                <div className="row">
-                  <span className="muted">合计已计入</span>
-                  <span>{Math.round(strengthBurn + cardioBurn)} kcal</span>
-                </div>
-              </>
-            ) : (
-              <p className="muted">今日暂无训练，按休息日标准计算</p>
-            )}
-          </div>
-        )}
-      </div>
-      {todayTrain === null && <div className="warn">提示：导入计划前，请先在「训练」页新建今日训练</div>}
-      {todayTrain === null && (
-        <button className="btn-block" onClick={() => { if (user) createToday(); }}>
           立即新建今日训练
-        </button>
+        </Button>
       )}
     </div>
   );
