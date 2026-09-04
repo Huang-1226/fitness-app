@@ -60,7 +60,7 @@ function WeekChart({ history }: { history: ReturnType<typeof useTrainingStore.ge
               width={BAR_W}
               height={barH}
               rx={4}
-              className={active ? 'fill-primary' : 'fill-muted/60'}
+              className={active ? 'fill-primary' : 'fill-border'}
             />
             {active && (
               <text
