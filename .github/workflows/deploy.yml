@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
 # GITHUB_TOKEN 权限：仅需要 pages 写入与 id-token（Pages 部署校验用）
