@@ -22,7 +22,7 @@ export function Modal({
         <SheetHeader className="border-b border-border">
           <SheetTitle className="text-base">{title}</SheetTitle>
         </SheetHeader>
-        <div className="max-h-[70dvh] overflow-y-auto px-4 pb-[env(safe-area-inset-bottom)]">
+        <div className="max-h-[70dvh] overflow-y-auto px-4 pb-[calc(16px+env(safe-area-inset-bottom))] pt-1">
           {children}
         </div>
       </SheetContent>

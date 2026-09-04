@@ -49,7 +49,7 @@ function WeekChart({ history }: { history: ReturnType<typeof useTrainingStore.ge
     >
       {days.map((d, i) => {
         const x = i * (BAR_W + BAR_GAP);
-        const barH = (d.burn / max) * INNER_H;
+        const barH = Math.max((d.burn / max) * INNER_H, 3);
         const y = TOP_PAD + (INNER_H - barH);
         const active = d.burn > 0;
         return (
