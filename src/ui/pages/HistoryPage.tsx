@@ -20,11 +20,18 @@ const TOP_PAD = 18;
 const BOTTOM_PAD = 20;
 const INNER_H = CHART_H - TOP_PAD - BOTTOM_PAD;
 
-function WeekChart({ history }: { history: ReturnType<typeof useTrainingStore.getState>['history'] }) {
+function WeekChart({
+  history,
+  todayTrain,
+}: {
+  history: ReturnType<typeof useTrainingStore.getState>['history'];
+  todayTrain: ReturnType<typeof useTrainingStore.getState>['todayTrain'];
+}) {
   const days = useMemo(() => {
     const today = todayISO();
     const dayBurn = new Map<string, number>();
-    for (const t of history) {
+    const sessions = todayTrain ? [todayTrain, ...history] : history;
+    for (const t of sessions) {
       const burn = t.getStrengthBurn() + t.getCardioBurn();
       dayBurn.set(t.getDate(), (dayBurn.get(t.getDate()) ?? 0) + burn);
     }
@@ -36,7 +43,7 @@ function WeekChart({ history }: { history: ReturnType<typeof useTrainingStore.ge
       items.push({ date, burn, label: `${Number(m)}/${Number(d)}` });
     }
     return items;
-  }, [history]);
+  }, [history, todayTrain]);
 
   const max = Math.max(...days.map((d) => d.burn), 1);
 
@@ -90,26 +97,26 @@ function WeekChart({ history }: { history: ReturnType<typeof useTrainingStore.ge
 }
 
 export default function HistoryPage() {
-  const { history, deleteTraining } = useTrainingStore();
+  const { history, todayTrain, deleteTraining } = useTrainingStore();
   const [openDate, setOpenDate] = useState<string | null>(null);
 
   const stats = useMemo(() => {
     const today = todayISO();
-    const agoISO = addDaysISO(today, -7);
+    const agoISO = addDaysISO(today, -6);
 
-    const daySet = new Set<string>();
-    let totalBurn = 0;
-    for (const t of history) {
+    const burnByDate = new Map<string, number>();
+    const sessions = todayTrain ? [todayTrain, ...history] : history;
+    for (const t of sessions) {
       const date = t.getDate();
-      if (date >= agoISO) {
-        daySet.add(date);
-        totalBurn += t.getStrengthBurn() + t.getCardioBurn();
+      if (date >= agoISO && date <= today) {
+        burnByDate.set(date, (burnByDate.get(date) ?? 0) + t.getStrengthBurn() + t.getCardioBurn());
       }
     }
-    const trainDayCount = daySet.size;
+    const trainDayCount = burnByDate.size;
+    const totalBurn = [...burnByDate.values()].reduce((s, v) => s + v, 0);
     const avgBurn = trainDayCount > 0 ? totalBurn / trainDayCount : 0;
     return { trainDayCount, totalBurn, avgBurn };
-  }, [history]);
+  }, [history, todayTrain]);
 
   return (
     <div className="px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))]">
@@ -123,7 +130,7 @@ export default function HistoryPage() {
           <CardTitle className="text-base">近 7 天统计</CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-0">
-          <WeekChart history={history} />
+          <WeekChart history={history} todayTrain={todayTrain} />
           <div className="mt-3 grid grid-cols-2 gap-2.5">
             <Stat value={`${stats.trainDayCount}`} label="有效训练天数" />
             <Stat value={`${Math.round(stats.totalBurn)}`} label="七天总消耗 kcal" />

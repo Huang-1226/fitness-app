@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import type { Exercise } from '@/core/exercise';
 import {
   calculateFullNutrition,
@@ -23,16 +24,44 @@ import { useUserStore } from '@/store/userStore';
 import { Select } from '@/ui/components/Select';
 import { Stat } from '@/ui/components/Stat';
 
-function PlanRow({ e }: { e: Exercise }) {
+/** PPL 三分化每日的语义色（Tailwind 令牌色） */
+const PPL_COLORS = [
+  { title: 'text-red-500', dot: 'bg-red-500' },
+  { title: 'text-blue-500', dot: 'bg-blue-500' },
+  { title: 'text-emerald-500', dot: 'bg-emerald-500' },
+] as const;
+
+function planStats(list: Exercise[]) {
+  const totalSets = list.reduce((s, e) => s + e.getSets(), 0);
+  return { count: list.length, totalSets };
+}
+
+function PlanRow({ e, index }: { e: Exercise; index: number }) {
+  const main = e.getMuscleRatios()[0];
   return (
-    <div className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0">
-      <div>
-        <div className="font-semibold">{e.getName()}</div>
-        <div className="mt-0.5 text-xs text-muted-foreground">
-          {e.getTrainGroup()} · 推荐 {e.getSets()}组×{e.getReps()}次 · MET {e.getMetValue()}
+    <div className="flex items-center gap-2.5 border-b border-border py-2 last:border-0">
+      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
+        {index}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold">{e.getName()}</div>
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+          <Badge variant="secondary" className="px-1.5 py-0 text-[11px]">
+            {e.getTrainGroup()}
+          </Badge>
+          <span>
+            {e.getSets()}组 × {e.getReps()}次
+          </span>
+          {main && (
+            <span>
+              · {main.getMuscleName()} {main.getRatio()}%
+            </span>
+          )}
         </div>
       </div>
-      <Badge variant="secondary">{e.getTrainGroup()}</Badge>
+      <span className="shrink-0 rounded-md bg-secondary/70 px-1.5 py-0.5 text-[11px] text-muted-foreground">
+        MET {e.getMetValue()}
+      </span>
     </div>
   );
 }
@@ -69,11 +98,14 @@ export default function PlanPage() {
   const [filterThreshold, setFilterThreshold] = useState('70');
   const [filterResult, setFilterResult] = useState<Exercise[] | null>(null);
 
-  const [actCode, setActCode] = useState(
-    user && user.getActivityCode() >= 1 && user.getActivityCode() <= 4
-      ? user.getActivityCode()
-      : 3,
-  );
+  const [actCode, setActCode] = useState<number>(() => {
+    const u = useUserStore.getState().user;
+    return u && u.getActivityCode() >= 1 && u.getActivityCode() <= 4 ? u.getActivityCode() : 3;
+  });
+  const [actCodeTouched, setActCodeTouched] = useState(false);
+  const profileActCode =
+    user && user.getActivityCode() >= 1 && user.getActivityCode() <= 4 ? user.getActivityCode() : null;
+  const effectiveActCode = actCodeTouched || profileActCode === null ? actCode : profileActCode;
   const [dietMode, setDietMode] = useState<Mode>('MAINTAIN');
   const [dietResult, setDietResult] = useState<ReturnType<typeof calculateFullNutrition> | null>(null);
   const [dietErr, setDietErr] = useState('');
@@ -122,7 +154,7 @@ export default function PlanPage() {
     }
     try {
       const todayBurn = todayTrain ? todayTrain.getStrengthBurn() + todayTrain.getCardioBurn() : 0;
-      const result = calculateFullNutrition(user, dietMode, actCode, todayBurn);
+      const result = calculateFullNutrition(user, dietMode, effectiveActCode, todayBurn);
       setDietResult(result);
       setDietErr('');
     } catch (e) {
@@ -136,35 +168,63 @@ export default function PlanPage() {
     const isPPL = planMode === 4 && Array.isArray(plan) && plan[0] && Array.isArray(plan[0]);
     if (isPPL) {
       const days = plan as Exercise[][];
-      const labels = ['推 Push · 胸肩三头', '拉 Pull · 背二头', '腿 Leg · 腿臀核心'];
+      const labels = [
+        { title: '推 Push', sub: '胸 · 肩 · 三头' },
+        { title: '拉 Pull', sub: '背 · 二头' },
+        { title: '腿 Leg', sub: '腿 · 臀 · 核心' },
+      ];
       return (
         <div className="space-y-2.5">
-          {days.map((day, i) => (
-            <div key={i} className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
-              <div className="mb-1.5 flex items-center justify-between">
-                <span className="font-semibold">{labels[i]}</span>
-                <Badge variant="secondary">{day.length} 个动作</Badge>
+          {days.map((day, i) => {
+            const st = planStats(day);
+            const label = labels[i];
+            const color = PPL_COLORS[i];
+            return (
+              <div
+                key={i}
+                className="rounded-lg border border-border bg-muted/30 px-3 py-2.5"
+              >
+                <div className="mb-1.5 flex items-center justify-between">
+                  <div>
+                    <div className={cn('flex items-center gap-1.5 font-semibold', color?.title)}>
+                      <span className={cn('size-2 rounded-full', color?.dot)} />
+                      {label?.title}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{label?.sub}</div>
+                  </div>
+                  <div className="flex shrink-0 gap-1.5">
+                    <Badge variant="secondary">{st.count} 个动作</Badge>
+                    <Badge variant="outline">约 {st.totalSets} 组</Badge>
+                  </div>
+                </div>
+                {day.map((e, j) => (
+                  <PlanRow key={e.getName()} e={e} index={j + 1} />
+                ))}
+                <Button className="mt-2.5 w-full" variant="secondary" onClick={() => importPlan(day)}>
+                  导入今日训练
+                </Button>
               </div>
-              {day.map((e) => (
-                <PlanRow key={e.getName()} e={e} />
-              ))}
-              <Button className="mt-2.5 w-full" variant="secondary" onClick={() => importPlan(day)}>
-                导入今日训练
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       );
     }
     const list = plan as Exercise[];
+    const st = planStats(list);
     return (
       <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
         <div className="mb-1.5 flex items-center justify-between">
-          <span className="font-semibold">生成计划</span>
-          <Badge variant="secondary">共 {list.length} 个动作</Badge>
+          <div>
+            <div className="font-semibold">生成计划</div>
+            <div className="text-xs text-muted-foreground">预计时长约 {Math.round(st.totalSets * 2.5)} 分钟</div>
+          </div>
+          <div className="flex shrink-0 gap-1.5">
+            <Badge variant="secondary">{st.count} 个动作</Badge>
+            <Badge variant="outline">约 {st.totalSets} 组</Badge>
+          </div>
         </div>
-        {list.map((e) => (
-          <PlanRow key={e.getName()} e={e} />
+        {list.map((e, j) => (
+          <PlanRow key={e.getName()} e={e} index={j + 1} />
         ))}
         <Button className="mt-2.5 w-full" variant="secondary" onClick={() => importPlan(list)}>
           导入今日训练
@@ -299,7 +359,13 @@ export default function PlanPage() {
         <CardContent className="space-y-3 p-4 pt-0">
           <div className="space-y-1.5">
             <Label>活动等级（默认取档案）</Label>
-            <Select value={actCode} onChange={(e) => setActCode(Number(e.target.value))}>
+            <Select
+              value={effectiveActCode}
+              onChange={(e) => {
+                setActCode(Number(e.target.value));
+                setActCodeTouched(true);
+              }}
+            >
               <option value={1}>1 久坐</option>
               <option value={2}>2 轻度活动</option>
               <option value={3}>3 中度活动</option>
