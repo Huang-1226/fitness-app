@@ -9,16 +9,49 @@ import { useLibraryStore } from '../../store/libraryStore';
 import { useTrainingStore } from '../../store/trainingStore';
 import { useUserStore } from '../../store/userStore';
 
-function PlanRow({ e }: { e: Exercise }) {
+const GROUP_COLORS: Record<string, string> = {
+  胸部: '#f87171',
+  背部: '#60a5fa',
+  腿部: '#34d399',
+  核心: '#facc15',
+  肩部: '#c084fc',
+  手臂: '#fb923c',
+};
+
+function groupColor(group: string): string {
+  return GROUP_COLORS[group] ?? '#60a5fa';
+}
+
+function planStats(list: Exercise[]) {
+  const totalSets = list.reduce((s, e) => s + e.getSets(), 0);
+  return { count: list.length, totalSets };
+}
+
+function PlanRow({ e, index }: { e: Exercise; index: number }) {
+  const color = groupColor(e.getTrainGroup());
+  const main = e.getMuscleRatios()[0];
   return (
-    <div className="row">
-      <div>
-        <div style={{ fontWeight: 600 }}>{e.getName()}</div>
-        <div className="muscle-line">
-          {e.getTrainGroup()} · 推荐 {e.getSets()}组×{e.getReps()}次 · MET {e.getMetValue()}
+    <div className="plan-ex-row" style={{ borderLeftColor: color }}>
+      <span className="plan-ex-index" style={{ background: color }}>
+        {index}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="plan-ex-name">{e.getName()}</div>
+        <div className="plan-ex-meta">
+          <span className="plan-tag" style={{ color, borderColor: color, background: `${color}1f` }}>
+            {e.getTrainGroup()}
+          </span>
+          <span>
+            {e.getSets()}组 × {e.getReps()}次
+          </span>
+          {main && (
+            <span>
+              · {main.getMuscleName()} {main.getRatio()}%
+            </span>
+          )}
         </div>
       </div>
-      <span className="badge">{e.getTrainGroup()}</span>
+      <span className="plan-ex-met">MET {e.getMetValue()}</span>
     </div>
   );
 }
@@ -40,11 +73,14 @@ export default function PlanPage() {
   const [filterThreshold, setFilterThreshold] = useState('70');
   const [filterResult, setFilterResult] = useState<Exercise[] | null>(null);
 
-  const [actCode, setActCode] = useState(
-    user && user.getActivityCode() >= 1 && user.getActivityCode() <= 4
-      ? user.getActivityCode()
-      : 3,
-  );
+  const [actCode, setActCode] = useState<number>(() => {
+    const u = useUserStore.getState().user;
+    return u && u.getActivityCode() >= 1 && u.getActivityCode() <= 4 ? u.getActivityCode() : 3;
+  });
+  const [actCodeTouched, setActCodeTouched] = useState(false);
+  const profileActCode =
+    user && user.getActivityCode() >= 1 && user.getActivityCode() <= 4 ? user.getActivityCode() : null;
+  const effectiveActCode = actCodeTouched || profileActCode === null ? actCode : profileActCode;
   const [dietMode, setDietMode] = useState<Mode>('MAINTAIN');
   const [dietResult, setDietResult] = useState<ReturnType<typeof calculateFullNutrition> | null>(null);
   const [dietErr, setDietErr] = useState('');
@@ -93,7 +129,7 @@ export default function PlanPage() {
     }
     try {
       const todayBurn = todayTrain ? todayTrain.getStrengthBurn() + todayTrain.getCardioBurn() : 0;
-      const result = calculateFullNutrition(user, dietMode, actCode, todayBurn);
+      const result = calculateFullNutrition(user, dietMode, effectiveActCode, todayBurn);
       setDietResult(result);
       setDietErr('');
     } catch (e) {
@@ -107,51 +143,68 @@ export default function PlanPage() {
     const isPPL = planMode === 4 && Array.isArray(plan) && plan[0] && Array.isArray(plan[0]);
     if (isPPL) {
       const days = plan as Exercise[][];
-      const labels = ['推 Push · 胸肩三头', '拉 Pull · 背二头', '腿 Leg · 腿臀核心'];
+      const dayMeta = [
+        { label: '推 Push', sub: '胸 · 肩 · 三头', color: '#f87171' },
+        { label: '拉 Pull', sub: '背 · 二头', color: '#60a5fa' },
+        { label: '腿 Leg', sub: '腿 · 臀 · 核心', color: '#34d399' },
+      ];
       return (
         <>
-          {days.map((day, i) => (
-            <div className="list-item" key={i}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 8,
-                }}
-              >
-                <span className="list-item-title">{labels[i]}</span>
-                <span className="badge">{day.length} 个动作</span>
+          {days.map((day, i) => {
+            const st = planStats(day);
+            const meta = dayMeta[i];
+            return (
+              <div className="plan-day-card" key={i} style={{ borderColor: `${meta.color}55` }}>
+                <div className="plan-day-head" style={{ background: `${meta.color}1a` }}>
+                  <div>
+                    <div className="plan-day-title" style={{ color: meta.color }}>
+                      {meta.label}
+                    </div>
+                    <div className="plan-day-sub">{meta.sub}</div>
+                  </div>
+                  <div className="plan-day-badges">
+                    <span className="plan-tag" style={{ color: meta.color, borderColor: meta.color, background: `${meta.color}1f` }}>
+                      {st.count} 个动作
+                    </span>
+                    <span className="plan-tag">约 {st.totalSets} 组</span>
+                  </div>
+                </div>
+                <div className="plan-ex-list">
+                  {day.map((e, j) => (
+                    <PlanRow key={e.getName()} e={e} index={j + 1} />
+                  ))}
+                </div>
+                <button className="btn-block btn-secondary" style={{ marginTop: 12 }} onClick={() => importPlan(day)}>
+                  导入今日训练
+                </button>
               </div>
-              {day.map((e) => (
-                <PlanRow key={e.getName()} e={e} />
-              ))}
-              <button className="btn-block btn-secondary" style={{ marginTop: 10 }} onClick={() => importPlan(day)}>
-                导入今日训练
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </>
       );
     }
     const list = plan as Exercise[];
+    const st = planStats(list);
     return (
-      <div className="list-item">
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 8,
-          }}
-        >
-          <span className="list-item-title">生成计划</span>
-          <span className="badge">共 {list.length} 个动作</span>
+      <div className="plan-day-card" style={{ borderColor: 'var(--border)' }}>
+        <div className="plan-day-head" style={{ background: 'var(--surface-2)' }}>
+          <div>
+            <div className="plan-day-title">生成计划</div>
+            <div className="plan-day-sub">预计时长约 {Math.round(st.totalSets * 2.5)} 分钟</div>
+          </div>
+          <div className="plan-day-badges">
+            <span className="plan-tag" style={{ color: 'var(--accent-2)', borderColor: 'var(--accent-2)' }}>
+              {st.count} 个动作
+            </span>
+            <span className="plan-tag">约 {st.totalSets} 组</span>
+          </div>
         </div>
-        {list.map((e) => (
-          <PlanRow key={e.getName()} e={e} />
-        ))}
-        <button className="btn-block btn-secondary" style={{ marginTop: 10 }} onClick={() => importPlan(list)}>
+        <div className="plan-ex-list">
+          {list.map((e, j) => (
+            <PlanRow key={e.getName()} e={e} index={j + 1} />
+          ))}
+        </div>
+        <button className="btn-block btn-secondary" style={{ marginTop: 12 }} onClick={() => importPlan(list)}>
           导入今日训练
         </button>
       </div>
@@ -245,7 +298,13 @@ export default function PlanPage() {
       <div className="card">
         <div className="card-title">个性化饮食方案</div>
         <label>活动等级（默认取档案）</label>
-        <select value={actCode} onChange={(e) => setActCode(Number(e.target.value))}>
+        <select
+          value={effectiveActCode}
+          onChange={(e) => {
+            setActCode(Number(e.target.value));
+            setActCodeTouched(true);
+          }}
+        >
           <option value={1}>1 久坐</option>
           <option value={2}>2 轻度活动</option>
           <option value={3}>3 中度活动</option>

@@ -3,26 +3,26 @@ import { addDaysISO, daysBetween, todayISO } from '../../core/dateUtil';
 import { useTrainingStore } from '../../store/trainingStore';
 
 export default function HistoryPage() {
-  const { history, deleteTraining } = useTrainingStore();
+  const { history, todayTrain, deleteTraining } = useTrainingStore();
   const [openDate, setOpenDate] = useState<string | null>(null);
 
   const stats = useMemo(() => {
     const today = todayISO();
-    const agoISO = addDaysISO(today, -7);
+    const agoISO = addDaysISO(today, -6);
 
-    const daySet = new Set<string>();
-    let totalBurn = 0;
-    for (const t of history) {
+    const burnByDate = new Map<string, number>();
+    const sessions = todayTrain ? [todayTrain, ...history] : history;
+    for (const t of sessions) {
       const date = t.getDate();
-      if (date >= agoISO) {
-        daySet.add(date);
-        totalBurn += t.getStrengthBurn() + t.getCardioBurn();
+      if (date >= agoISO && date <= today) {
+        burnByDate.set(date, (burnByDate.get(date) ?? 0) + t.getStrengthBurn() + t.getCardioBurn());
       }
     }
-    const trainDayCount = daySet.size;
+    const trainDayCount = burnByDate.size;
+    const totalBurn = [...burnByDate.values()].reduce((s, v) => s + v, 0);
     const avgBurn = trainDayCount > 0 ? totalBurn / trainDayCount : 0;
     return { trainDayCount, totalBurn, avgBurn };
-  }, [history]);
+  }, [history, todayTrain]);
 
   return (
     <div className="page">
