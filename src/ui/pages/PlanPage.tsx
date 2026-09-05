@@ -1,5 +1,5 @@
 import { ClipboardList, Utensils, Wand2 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,11 +18,14 @@ import {
   type Mode,
 } from '@/core/nutritionCalculator';
 import { WorkoutLog } from '@/core/workoutLog';
+import { useI18n } from '@/i18n/i18nStore';
 import { useLibraryStore } from '@/store/libraryStore';
 import { useTrainingStore } from '@/store/trainingStore';
 import { useUserStore } from '@/store/userStore';
 import { Select } from '@/ui/components/Select';
 import { Stat } from '@/ui/components/Stat';
+
+import { AddExerciseModal } from '../components/AddExerciseModal';
 
 /** PPL 三分化每日的语义色（Tailwind 令牌色） */
 const PPL_COLORS = [
@@ -37,6 +40,7 @@ function planStats(list: Exercise[]) {
 }
 
 function PlanRow({ e, index }: { e: Exercise; index: number }) {
+  const { t, d } = useI18n();
   const main = e.getMuscleRatios()[0];
   return (
     <div className="flex items-center gap-2.5 border-b border-border py-2 last:border-0">
@@ -44,17 +48,15 @@ function PlanRow({ e, index }: { e: Exercise; index: number }) {
         {index}
       </span>
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-semibold">{e.getName()}</div>
+        <div className="text-sm font-semibold">{d(e.getName())}</div>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
           <Badge variant="secondary" className="px-1.5 py-0 text-[11px]">
-            {e.getTrainGroup()}
+            {d(e.getTrainGroup())}
           </Badge>
-          <span>
-            {e.getSets()}组 × {e.getReps()}次
-          </span>
+          <span>{t('lib.setsReps', { s: e.getSets(), r: e.getReps() })}</span>
           {main && (
             <span>
-              · {main.getMuscleName()} {main.getRatio()}%
+              · {d(main.getMuscleName())} {main.getRatio()}%
             </span>
           )}
         </div>
@@ -82,9 +84,10 @@ function Message({ ok, text }: { ok: boolean; text: string }) {
 }
 
 export default function PlanPage() {
+  const { t, d } = useI18n();
   const user = useUserStore((s) => s.user);
   const { todayTrain, addWorkoutLog, createToday } = useTrainingStore();
-  const library = useLibraryStore((s) => s.library);
+  const { library, addExercise } = useLibraryStore();
 
   const [planMode, setPlanMode] = useState(1);
   const [g1, setG1] = useState('胸部');
@@ -97,6 +100,17 @@ export default function PlanPage() {
   const [filterMuscle, setFilterMuscle] = useState('');
   const [filterThreshold, setFilterThreshold] = useState('70');
   const [filterResult, setFilterResult] = useState<Exercise[] | null>(null);
+  const [showAddEx, setShowAddEx] = useState(false);
+
+  const allMuscles = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of library.getAllExercises()) {
+      for (const m of e.getMuscleRatios()) {
+        set.add(m.getMuscleName());
+      }
+    }
+    return [...set].sort();
+  }, [library]);
 
   const [actCode, setActCode] = useState<number>(() => {
     const u = useUserStore.getState().user;
@@ -135,20 +149,20 @@ export default function PlanPage() {
 
   const importPlan = (list: Exercise[]) => {
     if (!todayTrain) {
-      setPlanMsg('请先在「训练」页新建今日训练，再导入计划');
+      setPlanMsg(t('plan.noTodayImport'));
       setPlanMsgOk(false);
       return;
     }
     for (const ex of list) {
       addWorkoutLog(new WorkoutLog(ex));
     }
-    setPlanMsg(`已导入 ${list.length} 个动作到今日训练`);
+    setPlanMsg(t('plan.imported', { n: list.length }));
     setPlanMsgOk(true);
   };
 
   const buildDiet = () => {
     if (!user) {
-      setDietErr('请先创建个人档案');
+      setDietErr(t('plan.noProfile'));
       setDietResult(null);
       return;
     }
@@ -159,7 +173,7 @@ export default function PlanPage() {
       setDietErr('');
     } catch (e) {
       setDietResult(null);
-      setDietErr(e instanceof Error ? e.message : '生成失败，请检查活动等级');
+      setDietErr(e instanceof Error ? e.message : t('plan.genFail'));
     }
   };
 
@@ -169,10 +183,10 @@ export default function PlanPage() {
     if (isPPL) {
       const days = plan as Exercise[][];
       const labels = [
-        { title: '推 Push', sub: '胸 · 肩 · 三头' },
-        { title: '拉 Pull', sub: '背 · 二头' },
-        { title: '腿 Leg', sub: '腿 · 臀 · 核心' },
-      ];
+        { titleKey: 'plan.push', subKey: 'plan.pushSub' },
+        { titleKey: 'plan.pull', subKey: 'plan.pullSub' },
+        { titleKey: 'plan.leg', subKey: 'plan.legSub' },
+      ] as const;
       return (
         <div className="space-y-2.5">
           {days.map((day, i) => {
@@ -188,20 +202,20 @@ export default function PlanPage() {
                   <div>
                     <div className={cn('flex items-center gap-1.5 font-semibold', color?.title)}>
                       <span className={cn('size-2 rounded-full', color?.dot)} />
-                      {label?.title}
+                      {t(label?.titleKey)}
                     </div>
-                    <div className="text-xs text-muted-foreground">{label?.sub}</div>
+                    <div className="text-xs text-muted-foreground">{t(label?.subKey)}</div>
                   </div>
                   <div className="flex shrink-0 gap-1.5">
-                    <Badge variant="secondary">{st.count} 个动作</Badge>
-                    <Badge variant="outline">约 {st.totalSets} 组</Badge>
+                    <Badge variant="secondary">{t('plan.exCount', { n: st.count })}</Badge>
+                    <Badge variant="outline">{t('plan.setsCount', { n: st.totalSets })}</Badge>
                   </div>
                 </div>
                 {day.map((e, j) => (
                   <PlanRow key={e.getName()} e={e} index={j + 1} />
                 ))}
                 <Button className="mt-2.5 w-full" variant="secondary" onClick={() => importPlan(day)}>
-                  导入今日训练
+                  {t('plan.importToday')}
                 </Button>
               </div>
             );
@@ -215,19 +229,21 @@ export default function PlanPage() {
       <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
         <div className="mb-1.5 flex items-center justify-between">
           <div>
-            <div className="font-semibold">生成计划</div>
-            <div className="text-xs text-muted-foreground">预计时长约 {Math.round(st.totalSets * 2.5)} 分钟</div>
+            <div className="font-semibold">{t('plan.generated')}</div>
+            <div className="text-xs text-muted-foreground">
+              {t('plan.estTime', { n: Math.round(st.totalSets * 2.5) })}
+            </div>
           </div>
           <div className="flex shrink-0 gap-1.5">
-            <Badge variant="secondary">{st.count} 个动作</Badge>
-            <Badge variant="outline">约 {st.totalSets} 组</Badge>
+            <Badge variant="secondary">{t('plan.exCount', { n: st.count })}</Badge>
+            <Badge variant="outline">{t('plan.setsCount', { n: st.totalSets })}</Badge>
           </div>
         </div>
         {list.map((e, j) => (
           <PlanRow key={e.getName()} e={e} index={j + 1} />
         ))}
         <Button className="mt-2.5 w-full" variant="secondary" onClick={() => importPlan(list)}>
-          导入今日训练
+          {t('plan.importToday')}
         </Button>
       </div>
     );
@@ -240,41 +256,45 @@ export default function PlanPage() {
     <div className="px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))]">
       <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold">
         <ClipboardList className="size-6 text-primary" />
-        计划 & 饮食
+        {t('plan.title')}
       </h1>
 
       <Card className="gap-0 rounded-xl border-border py-0 shadow-sm">
         <CardHeader className="px-4 pt-4">
           <CardTitle className="flex items-center gap-1.5 text-base">
             <Wand2 className="size-4 text-primary" />
-            训练计划生成
+            {t('plan.planGen')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 p-4 pt-0">
           <div className="space-y-1.5">
-            <Label>模式</Label>
+            <Label>{t('plan.mode')}</Label>
             <Select value={planMode} onChange={(e) => setPlanMode(Number(e.target.value))}>
-              <option value={1}>全身训练</option>
-              <option value={2}>双部位分化</option>
-              <option value={3}>单肌群专攻</option>
-              <option value={4}>推拉腿三分化 PPL</option>
+              <option value={1}>{t('plan.fullBody')}</option>
+              <option value={2}>{t('plan.twoTarget')}</option>
+              <option value={3}>{t('plan.singleGroup')}</option>
+              <option value={4}>{t('plan.ppl')}</option>
             </Select>
           </div>
           {planMode === 2 && (
             <div className="grid grid-cols-2 gap-2.5">
               <div className="space-y-1.5">
-                <Label>部位 1</Label>
+                <Label>{t('plan.part1')}</Label>
                 <Select value={g1} onChange={(e) => setG1(e.target.value)}>
                   {groups.map((g) => (
-                    <option key={g}>{g}</option>
+                    <option key={g} value={g}>
+                      {d(g)}
+                    </option>
                   ))}
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>部位 2</Label>
+                <Label>{t('plan.part2')}</Label>
                 <Select value={g2} onChange={(e) => setG2(e.target.value)}>
                   {groups.map((g) => (
-                    <option key={g}>{g}</option>
+                    <option key={g} value={g}>
+                      {d(g)}
+                    </option>
                   ))}
                 </Select>
               </div>
@@ -282,16 +302,18 @@ export default function PlanPage() {
           )}
           {planMode === 3 && (
             <div className="space-y-1.5">
-              <Label>目标肌群</Label>
+              <Label>{t('plan.targetGroup')}</Label>
               <Select value={singleTarget} onChange={(e) => setSingleTarget(e.target.value)}>
                 {groups.map((g) => (
-                  <option key={g}>{g}</option>
+                  <option key={g} value={g}>
+                    {d(g)}
+                  </option>
                 ))}
               </Select>
             </div>
           )}
           <Button className="w-full" onClick={generatePlan}>
-            生成计划
+            {t('plan.generate')}
           </Button>
           <Message ok={planMsgOk} text={planMsg} />
           {renderPlanResult()}
@@ -300,19 +322,28 @@ export default function PlanPage() {
 
       <Card className="mt-3 gap-0 rounded-xl border-border py-0 shadow-sm">
         <CardHeader className="px-4 pt-4">
-          <CardTitle className="text-base">按肌肉筛选主打动作</CardTitle>
+          <CardTitle className="text-base">{t('plan.filter')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 p-4 pt-0">
           <div className="space-y-1.5">
-            <Label>目标肌肉</Label>
-            <Input
+            <Label>{t('plan.targetMuscle')}</Label>
+            <Select
               value={filterMuscle}
-              onChange={(e) => setFilterMuscle(e.target.value)}
-              placeholder="如 胸大肌 / 背阔肌"
-            />
+              onChange={(e) => {
+                setFilterMuscle(e.target.value);
+                setFilterResult(null);
+              }}
+            >
+              <option value="">{t('plan.selectMuscle')}</option>
+              {allMuscles.map((m) => (
+                <option key={m} value={m}>
+                  {d(m)}
+                </option>
+              ))}
+            </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>最低发力占比 (%)</Label>
+            <Label>{t('plan.threshold')}</Label>
             <Input
               type="number"
               inputMode="decimal"
@@ -323,24 +354,35 @@ export default function PlanPage() {
           <Button
             className="w-full"
             onClick={() => {
+              if (!filterMuscle) {
+                setFilterResult(null);
+                return;
+              }
               setFilterResult(library.findMainExerciseByMuscle(filterMuscle, Number(filterThreshold)));
               setPlan(null);
             }}
           >
-            筛选
+            {t('plan.filterBtn')}
           </Button>
           {filterResult && (
             <div>
               {filterResult.length === 0 ? (
-                <p className="py-4 text-center text-sm text-muted-foreground">无匹配动作</p>
+                <div className="space-y-2.5">
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    {t('plan.noMatchAdd')}
+                  </p>
+                  <Button className="w-full" variant="secondary" onClick={() => setShowAddEx(true)}>
+                    {t('lib.addStrength')}
+                  </Button>
+                </div>
               ) : (
                 filterResult.map((e) => (
                   <div
                     className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0"
                     key={e.getName()}
                   >
-                    <span>{e.getName()}</span>
-                    <Badge variant="secondary">{e.getTrainGroup()}</Badge>
+                    <span>{d(e.getName())}</span>
+                    <Badge variant="secondary">{d(e.getTrainGroup())}</Badge>
                   </div>
                 ))
               )}
@@ -349,16 +391,32 @@ export default function PlanPage() {
         </CardContent>
       </Card>
 
+      {showAddEx && (
+        <AddExerciseModal
+          initialMuscle={filterMuscle || undefined}
+          onClose={() => setShowAddEx(false)}
+          onAdd={async (ex) => {
+            await addExercise(ex);
+            setShowAddEx(false);
+            if (filterMuscle) {
+              setFilterResult(
+                useLibraryStore.getState().library.findMainExerciseByMuscle(filterMuscle, Number(filterThreshold)),
+              );
+            }
+          }}
+        />
+      )}
+
       <Card className="mt-3 gap-0 rounded-xl border-border py-0 shadow-sm">
         <CardHeader className="px-4 pt-4">
           <CardTitle className="flex items-center gap-1.5 text-base">
             <Utensils className="size-4 text-primary" />
-            个性化饮食方案
+            {t('plan.diet')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 p-4 pt-0">
           <div className="space-y-1.5">
-            <Label>活动等级（默认取档案）</Label>
+            <Label>{t('plan.activityDefault')}</Label>
             <Select
               value={effectiveActCode}
               onChange={(e) => {
@@ -366,22 +424,22 @@ export default function PlanPage() {
                 setActCodeTouched(true);
               }}
             >
-              <option value={1}>1 久坐</option>
-              <option value={2}>2 轻度活动</option>
-              <option value={3}>3 中度活动</option>
-              <option value={4}>4 高强度活动</option>
+              <option value={1}>{t('activity.1')}</option>
+              <option value={2}>{t('activity.2')}</option>
+              <option value={3}>{t('activity.3')}</option>
+              <option value={4}>{t('activity.4')}</option>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>目标</Label>
+            <Label>{t('plan.goal')}</Label>
             <Select value={dietMode} onChange={(e) => setDietMode(e.target.value as Mode)}>
-              <option value="LOSE_FAT">减脂</option>
-              <option value="MAINTAIN">维持</option>
-              <option value="GAIN_MUSCLE">增肌</option>
+              <option value="LOSE_FAT">{t('plan.loseFat')}</option>
+              <option value="MAINTAIN">{t('plan.maintain')}</option>
+              <option value="GAIN_MUSCLE">{t('plan.gainMuscle')}</option>
             </Select>
           </div>
           <Button className="w-full" onClick={buildDiet}>
-            生成方案
+            {t('plan.generateDiet')}
           </Button>
           {dietErr && <Message ok={false} text={dietErr} />}
 
@@ -389,58 +447,58 @@ export default function PlanPage() {
             <div className="space-y-3 pt-1">
               {dietResult.warn && (
                 <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm text-warning">
-                  {dietResult.warn}
+                  {d(dietResult.warn)}
                 </div>
               )}
               <div className="grid grid-cols-2 gap-2.5">
-                <Stat value={`${Math.round(dietResult.targetCal)}`} label="每日热量 kcal" />
-                <Stat value={`${Math.round(dietResult.proteinG)}g`} label="蛋白质" />
+                <Stat value={`${Math.round(dietResult.targetCal)}`} label={t('plan.dailyCal')} />
+                <Stat value={`${Math.round(dietResult.proteinG)}g`} label={t('plan.protein')} />
               </div>
               <div className="grid grid-cols-2 gap-2.5">
-                <Stat value={`${Math.round(dietResult.fatG)}g`} label="脂肪" />
-                <Stat value={`${Math.round(dietResult.carbG)}g`} label="碳水" />
+                <Stat value={`${Math.round(dietResult.fatG)}g`} label={t('plan.fat')} />
+                <Stat value={`${Math.round(dietResult.carbG)}g`} label={t('plan.carb')} />
               </div>
 
-              <p className="font-semibold">三餐分配 (3:4:3)</p>
+              <p className="font-semibold">{t('plan.mealSplit')}</p>
               {(
                 [
-                  ['早餐', 0.3],
-                  ['午餐', 0.4],
-                  ['晚餐', 0.3],
+                  ['plan.breakfast', 0.3],
+                  ['plan.lunch', 0.4],
+                  ['plan.dinner', 0.3],
                 ] as const
-              ).map(([label, ratio]) => (
+              ).map(([labelKey, ratio]) => (
                 <div
                   className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0"
-                  key={label}
+                  key={labelKey}
                 >
-                  <span className="text-muted-foreground">{label}</span>
+                  <span className="text-muted-foreground">{t(labelKey)}</span>
                   <span className="text-right">
-                    {Math.round(dietResult.targetCal * ratio)} kcal · 蛋白质
-                    {Math.round(dietResult.proteinG * ratio)}g · 碳水
-                    {Math.round(dietResult.carbG * ratio)}g · 脂肪
+                    {Math.round(dietResult.targetCal * ratio)} kcal · {t('plan.protein')}
+                    {Math.round(dietResult.proteinG * ratio)}g · {t('plan.carb')}
+                    {Math.round(dietResult.carbG * ratio)}g · {t('plan.fat')}
                     {Math.round(dietResult.fatG * ratio)}g
                   </span>
                 </div>
               ))}
 
-              <p className="pt-1 font-semibold">已计入的训练消耗</p>
+              <p className="pt-1 font-semibold">{t('plan.trainBurn')}</p>
               {todayTrain ? (
                 <>
                   <div className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0">
-                    <span className="text-muted-foreground">力量训练消耗</span>
+                    <span className="text-muted-foreground">{t('training.strengthBurn')}</span>
                     <span>{Math.round(strengthBurn)} kcal</span>
                   </div>
                   <div className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0">
-                    <span className="text-muted-foreground">有氧训练消耗</span>
+                    <span className="text-muted-foreground">{t('training.cardioBurn')}</span>
                     <span>{Math.round(cardioBurn)} kcal</span>
                   </div>
                   <div className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0">
-                    <span className="text-muted-foreground">合计已计入</span>
+                    <span className="text-muted-foreground">{t('plan.totalIncluded')}</span>
                     <span>{Math.round(strengthBurn + cardioBurn)} kcal</span>
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-muted-foreground">今日暂无训练，按休息日标准计算</p>
+                <p className="text-sm text-muted-foreground">{t('plan.noTrainToday')}</p>
               )}
             </div>
           )}
@@ -449,7 +507,7 @@ export default function PlanPage() {
 
       {todayTrain === null && (
         <div className="mt-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm text-warning">
-          提示：导入计划前，请先在「训练」页新建今日训练
+          {t('plan.hintImport')}
         </div>
       )}
       {todayTrain === null && (
@@ -459,7 +517,7 @@ export default function PlanPage() {
             if (user) createToday();
           }}
         >
-          立即新建今日训练
+          {t('plan.createToday')}
         </Button>
       )}
     </div>

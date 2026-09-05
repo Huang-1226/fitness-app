@@ -1,4 +1,4 @@
-import { Laptop, Moon, Sun } from 'lucide-react';
+import { Languages } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -9,20 +9,16 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import { useI18n } from '@/i18n/i18nStore';
-import { useThemeStore, type ThemeMode } from '@/store/themeStore';
+import { useI18n, type Lang } from './i18nStore';
 
-const OPTIONS: { mode: ThemeMode; labelKey: 'theme.light' | 'theme.dark' | 'theme.system'; icon: typeof Sun }[] = [
-  { mode: 'light', labelKey: 'theme.light', icon: Sun },
-  { mode: 'dark', labelKey: 'theme.dark', icon: Moon },
-  { mode: 'system', labelKey: 'theme.system', icon: Laptop },
+const OPTIONS: { lang: Lang; label: string }[] = [
+  { lang: 'zh', label: '中文' },
+  { lang: 'en', label: 'English' },
 ];
 
-export function ThemeToggle() {
-  const { t } = useI18n();
-  const { mode, resolved, setMode } = useThemeStore();
+export default function LanguageSwitch() {
+  const { lang, setLang, t } = useI18n();
   const [open, setOpen] = useState(false);
-  const ResolvedIcon = resolved === 'dark' ? Moon : Sun;
 
   return (
     <>
@@ -30,35 +26,34 @@ export function ThemeToggle() {
         variant="ghost"
         size="icon"
         className="size-9 shrink-0"
-        aria-label={t('theme.toggleAria')}
+        aria-label={t('lang.title')}
         onClick={() => setOpen(true)}
       >
-        <ResolvedIcon className="size-4" />
+        <Languages className="size-4" />
       </Button>
 
       <Sheet open={open} onOpenChange={(o) => (o ? undefined : setOpen(false))}>
         <SheetContent side="bottom" className="p-0">
           <SheetHeader className="border-b border-border">
-            <SheetTitle className="text-base">{t('theme.title')}</SheetTitle>
+            <SheetTitle className="text-base">{t('lang.title')}</SheetTitle>
           </SheetHeader>
-          <div className="grid grid-cols-3 gap-2.5 px-4 pb-[calc(20px+env(safe-area-inset-bottom))] pt-1">
-            {OPTIONS.map(({ mode: m, labelKey, icon: Icon }) => (
+          <div className="grid grid-cols-2 gap-2.5 px-4 pb-[calc(20px+env(safe-area-inset-bottom))] pt-1">
+            {OPTIONS.map(({ lang: l, label }) => (
               <button
-                key={m}
+                key={l}
                 type="button"
                 onClick={() => {
-                  setMode(m);
+                  setLang(l);
                   setOpen(false);
                 }}
                 className={cn(
                   'flex cursor-pointer flex-col items-center gap-1.5 rounded-xl border px-3 py-3.5 text-sm transition-colors',
-                  mode === m
+                  lang === l
                     ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border bg-muted/30 text-muted-foreground',
                 )}
               >
-                <Icon className="size-5" />
-                {t(labelKey)}
+                {label}
               </button>
             ))}
           </div>

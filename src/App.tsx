@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { HashRouter, Route, Routes } from 'react-router-dom';
+import LanguageSwitch from './i18n/LanguageSwitch';
 import { useLibraryStore } from './store/libraryStore';
 import { useTrainingStore } from './store/trainingStore';
 import { useUserStore } from './store/userStore';
@@ -23,7 +24,8 @@ export default function App() {
   return (
     <HashRouter>
       <div className="pointer-events-none fixed inset-x-0 top-0 z-40 mx-auto flex max-w-[640px] justify-end px-4 pt-3">
-        <div className="pointer-events-auto">
+        <div className="pointer-events-auto flex items-center gap-1">
+          <LanguageSwitch />
           <ThemeToggle />
         </div>
       </div>

@@ -16,6 +16,7 @@ import { CardioRecord } from '@/core/cardioRecord';
 import type { DailyTraining } from '@/core/dailyTraining';
 import { findRecoverRuleByGroup } from '@/core/muscleRecoverRule';
 import { WorkoutLog } from '@/core/workoutLog';
+import { useI18n } from '@/i18n/i18nStore';
 import { useLibraryStore } from '@/store/libraryStore';
 import { useTrainingStore } from '@/store/trainingStore';
 import { useUserStore } from '@/store/userStore';
@@ -48,6 +49,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export default function TrainingPage() {
+  const { t, d } = useI18n();
   const user = useUserStore((s) => s.user);
   const { todayTrain, history, createToday, addWorkoutLog, addCardio, setRemark, archiveToday } =
     useTrainingStore();
@@ -68,12 +70,12 @@ export default function TrainingPage() {
       <div className="px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))]">
         <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold">
           <Dumbbell className="size-6 text-primary" />
-          今日训练
+          {t('training.title')}
         </h1>
         <Card className="gap-0 rounded-xl border-border py-0 shadow-sm">
           <CardContent className="p-4">
             <p className="py-6 text-center text-sm text-muted-foreground">
-              请先在「首页」创建个人档案
+              {t('training.noProfile')}
             </p>
           </CardContent>
         </Card>
@@ -85,17 +87,17 @@ export default function TrainingPage() {
     <div className="px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))]">
       <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold">
         <Dumbbell className="size-6 text-primary" />
-        今日训练
+        {t('training.title')}
       </h1>
 
       {!todayTrain ? (
         <Card className="gap-0 rounded-xl border-border py-0 shadow-sm">
           <CardContent className="p-4">
             <p className="py-6 text-center text-sm text-muted-foreground">
-              今天还没有训练记录
+              {t('training.noRecord')}
             </p>
             <Button className="w-full" onClick={createToday}>
-              新建今日训练
+              {t('training.create')}
             </Button>
           </CardContent>
         </Card>
@@ -103,26 +105,26 @@ export default function TrainingPage() {
         <>
           <Card className="gap-0 rounded-xl border-border py-0 shadow-sm">
             <CardContent className="p-4">
-              <Row label="训练日期">{todayTrain.getDate()}</Row>
-              {todayTrain.getRemark() && <Row label="备注">{todayTrain.getRemark()}</Row>}
+              <Row label={t('training.date')}>{todayTrain.getDate()}</Row>
+              {todayTrain.getRemark() && <Row label={t('training.remark')}>{todayTrain.getRemark()}</Row>}
               <div className="mt-3 grid grid-cols-2 gap-2.5">
-                <Stat value={`${Math.round(strengthBurn)}`} label="力量消耗 kcal" />
-                <Stat value={`${Math.round(cardioBurn)}`} label="有氧消耗 kcal" />
+                <Stat value={`${Math.round(strengthBurn)}`} label={t('training.strengthBurn')} />
+                <Stat value={`${Math.round(cardioBurn)}`} label={t('training.cardioBurn')} />
               </div>
-              <Stat className="mt-2.5" value={`${Math.round(totalBurn)} kcal`} label="今日合计消耗" />
+              <Stat className="mt-2.5" value={`${Math.round(totalBurn)} kcal`} label={t('training.totalBurn')} />
               <p className="mt-2 text-center text-sm text-muted-foreground">
-                总训练容量：{Math.round(volume)}
+                {t('training.volume')}：{Math.round(volume)}
               </p>
             </CardContent>
           </Card>
 
           <Card className="mt-3 gap-0 rounded-xl border-border py-0 shadow-sm">
             <CardHeader className="px-4 pt-4">
-              <CardTitle className="text-base">力量训练记录</CardTitle>
+              <CardTitle className="text-base">{t('training.strengthRecords')}</CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
               {todayTrain.getWorkoutLogs().length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">暂无力量记录</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">{t('training.noStrength')}</p>
               ) : (
                 todayTrain.getWorkoutLogs().map((log, i) => (
                   <div
@@ -130,9 +132,9 @@ export default function TrainingPage() {
                     className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 [&+&]:mt-2"
                   >
                     <div className="font-semibold">
-                      {log.getExercise().getName()}
+                      {d(log.getExercise().getName())}
                       <Badge variant="secondary" className="ml-1.5">
-                        {log.getExercise().getTrainGroup()}
+                        {d(log.getExercise().getTrainGroup())}
                       </Badge>
                     </div>
                     <div className="mt-1 text-sm text-muted-foreground">
@@ -144,7 +146,7 @@ export default function TrainingPage() {
                       ))}
                     </div>
                     <div className="mt-0.5 text-xs text-muted-foreground">
-                      容量 {Math.round(log.getTrainVolume())} | 消耗{' '}
+                      {t('history.volume')} {Math.round(log.getTrainVolume())} | {t('history.total')}{' '}
                       {Math.round(log.getTotalBurn(user.getWeight()))} kcal
                     </div>
                   </div>
@@ -155,20 +157,20 @@ export default function TrainingPage() {
 
           <Card className="mt-3 gap-0 rounded-xl border-border py-0 shadow-sm">
             <CardHeader className="px-4 pt-4">
-              <CardTitle className="text-base">有氧训练记录</CardTitle>
+              <CardTitle className="text-base">{t('training.cardioRecords')}</CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
               {todayTrain.getCardioList().length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">暂无有氧记录</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">{t('training.noCardio')}</p>
               ) : (
                 todayTrain.getCardioList().map((c, i) => (
                   <div
                     key={i}
                     className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 [&+&]:mt-2"
                   >
-                    <div className="font-semibold">{c.getCardioName()}</div>
+                    <div className="font-semibold">{d(c.getCardioName())}</div>
                     <div className="mt-1 text-sm text-muted-foreground">
-                      {c.getMinute()} 分钟 | MET {c.getMetValue()} | 消耗{' '}
+                      {c.getMinute()} {t('training.minutes')} | MET {c.getMetValue()} | {t('history.total')}{' '}
                       {Math.round(c.calcBurn(user.getWeight()))} kcal
                     </div>
                   </div>
@@ -181,11 +183,11 @@ export default function TrainingPage() {
             <CardContent className="space-y-2.5 p-4">
               <Button className="w-full" onClick={() => setShowStrength(true)}>
                 <Plus className="size-4" />
-                力量打卡
+                {t('training.strengthLog')}
               </Button>
               <Button className="w-full" variant="secondary" onClick={() => setShowCardio(true)}>
                 <Flame className="size-4" />
-                有氧打卡
+                {t('training.cardioLog')}
               </Button>
               <Button
                 className="w-full"
@@ -196,10 +198,10 @@ export default function TrainingPage() {
                 }}
               >
                 <Sparkles className="size-4" />
-                设置备注
+                {t('training.setRemark')}
               </Button>
               <Button className="w-full" variant="outline" onClick={() => void archiveToday()}>
-                归档今日训练
+                {t('training.archive')}
               </Button>
             </CardContent>
           </Card>
@@ -229,13 +231,13 @@ export default function TrainingPage() {
       )}
 
       {showRemark && (
-        <Modal title="设置训练备注" onClose={() => setShowRemark(false)}>
+        <Modal title={t('training.setRemarkTitle')} onClose={() => setShowRemark(false)}>
           <div className="space-y-3">
             <Textarea
               rows={3}
               value={remarkText}
               onChange={(e) => setRemarkText(e.target.value)}
-              placeholder="训练状态、身体感受等"
+              placeholder={t('training.remarkPh')}
             />
             <Button
               className="w-full"
@@ -244,7 +246,7 @@ export default function TrainingPage() {
                 setShowRemark(false);
               }}
             >
-              保存备注
+              {t('training.saveRemark')}
             </Button>
           </div>
         </Modal>
@@ -264,6 +266,7 @@ function StrengthModal({
   onClose: () => void;
   onAdd: (log: WorkoutLog) => void;
 }) {
+  const { t, d } = useI18n();
   const [name, setName] = useState('');
   const [sets, setSets] = useState<{ w: string; r: string; m: string }[]>([]);
   const [cur, setCur] = useState({ w: '', r: '', m: '' });
@@ -279,10 +282,15 @@ function StrengthModal({
       const last = lastTrainDateForGroup(history, selected.getTrainGroup());
       if (last) {
         const today = new Date();
-        const d = new Date(last + 'T00:00:00');
-        const gap = Math.round((today.getTime() - d.getTime()) / 86400000);
+        const dd = new Date(last + 'T00:00:00');
+        const gap = Math.round((today.getTime() - dd.getTime()) / 86400000);
         if (gap < rule.recoverDays) {
-          warn = `恢复提醒：上次训练【${selected.getTrainGroup()}】在 ${last}，间隔仅 ${gap} 天，建议最少间隔 ${rule.recoverDays} 天`;
+          warn = t('training.smRecover', {
+            group: d(selected.getTrainGroup()),
+            date: last,
+            gap,
+            days: rule.recoverDays,
+          });
         }
       }
     }
@@ -293,7 +301,7 @@ function StrengthModal({
     const r = Number(cur.r);
     const m = Number(cur.m);
     if (!w || w <= 0 || !r || r <= 0 || !m || m <= 0) {
-      setErr('重量/次数/时长都必须大于0');
+      setErr(t('training.smInvalid'));
       return;
     }
     setErr('');
@@ -303,11 +311,11 @@ function StrengthModal({
 
   const finish = () => {
     if (!selected) {
-      setErr('请先选择动作');
+      setErr(t('training.smNeedExercise'));
       return;
     }
     if (sets.length === 0) {
-      setErr('至少录入一组数据');
+      setErr(t('training.smNeedSet'));
       return;
     }
     const log = new WorkoutLog(selected);
@@ -318,22 +326,23 @@ function StrengthModal({
   };
 
   return (
-    <Modal title="力量打卡" onClose={onClose}>
+    <Modal title={t('training.strengthLog')} onClose={onClose}>
       <div className="space-y-3">
         <div className="space-y-1.5">
-          <Label>选择动作</Label>
+          <Label>{t('training.smChoose')}</Label>
           <Select value={name} onChange={(e) => setName(e.target.value)}>
-            <option value="">-- 请选择 --</option>
+            <option value="">{t('training.smPlaceholder')}</option>
             {options.map((e) => (
               <option key={e.getName()} value={e.getName()}>
-                {e.getName()}
+                {d(e.getName())}
               </option>
             ))}
           </Select>
         </div>
         {selected && (
           <p className="text-sm text-muted-foreground">
-            {selected.getTrainGroup()} | 推荐 {selected.getSets()}组×{selected.getReps()}次 | MET{' '}
+            {d(selected.getTrainGroup())} | {t('training.smRecommend')}{' '}
+            {t('lib.setsReps', { s: selected.getSets(), r: selected.getReps() })} | MET{' '}
             {selected.getMetValue()}
           </p>
         )}
@@ -343,22 +352,22 @@ function StrengthModal({
           </div>
         )}
 
-        <p className="font-semibold">已录入组数：{sets.length}</p>
+        <p className="font-semibold">
+          {t('training.smSets')}：{sets.length}
+        </p>
         {sets.map((s, i) => (
           <div
             className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0"
             key={i}
           >
-            <span className="text-muted-foreground">第 {i + 1} 组</span>
-            <span>
-              {s.w}kg × {s.r}次 × {s.m}min
-            </span>
+            <span className="text-muted-foreground">{t('training.smSet', { n: i + 1 })}</span>
+            <span>{t('training.setRecord', { w: s.w, r: s.r, m: s.m })}</span>
           </div>
         ))}
 
         <div className="grid grid-cols-2 gap-2.5">
           <div className="space-y-1.5">
-            <Label>负重 kg</Label>
+            <Label>{t('training.smWeight')}</Label>
             <Input
               type="number"
               inputMode="decimal"
@@ -367,7 +376,7 @@ function StrengthModal({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>次数</Label>
+            <Label>{t('training.smReps')}</Label>
             <Input
               type="number"
               inputMode="numeric"
@@ -377,7 +386,7 @@ function StrengthModal({
           </div>
         </div>
         <div className="space-y-1.5">
-          <Label>本组用时 (分钟)</Label>
+          <Label>{t('training.smTime')}</Label>
           <Input
             type="number"
             inputMode="numeric"
@@ -387,10 +396,10 @@ function StrengthModal({
         </div>
         {err && <p className="text-sm text-destructive">{err}</p>}
         <Button className="w-full" variant="secondary" onClick={addSet}>
-          添加本组
+          {t('training.smAddSet')}
         </Button>
         <Button className="w-full" onClick={finish}>
-          完成打卡
+          {t('training.smFinish')}
         </Button>
       </div>
     </Modal>
@@ -404,55 +413,58 @@ function CardioModal({
   onClose: () => void;
   onAdd: (c: CardioRecord) => void;
 }) {
+  const { t, d } = useI18n();
   const library = useLibraryStore((s) => s.library);
   const [name, setName] = useState('');
   const [minute, setMinute] = useState('');
   const [err, setErr] = useState('');
   const templates = library.getCardioTemplates();
 
-  const selected = templates.find((t) => t.name === name);
+  const selected = templates.find((tt) => tt.name === name);
 
   const finish = () => {
     if (!selected) {
-      setErr('请选择有氧项目');
+      setErr(t('training.cmNeedSelect'));
       return;
     }
     const min = Number(minute);
     if (!min || min <= 0) {
-      setErr('时长必须大于0');
+      setErr(t('training.cmNeedDuration'));
       return;
     }
     onAdd(new CardioRecord(name, selected.met, min));
   };
 
   return (
-    <Modal title="有氧打卡" onClose={onClose}>
+    <Modal title={t('training.cardioLog')} onClose={onClose}>
       <div className="space-y-3">
-        <Label>选择有氧项目</Label>
+        <Label>{t('training.cmChoose')}</Label>
         <div className="space-y-2">
-          {templates.map((t) => (
+          {templates.map((tt) => (
             <div
               className={`cursor-pointer rounded-lg border px-3 py-2.5 ${
-                name === t.name
+                name === tt.name
                   ? 'border-primary bg-primary/10'
                   : 'border-border bg-muted/30'
               }`}
-              key={t.name}
+              key={tt.name}
               onClick={() => {
-                setName(t.name);
-                setMinute(String(t.recommendMin));
+                setName(tt.name);
+                setMinute(String(tt.recommendMin));
               }}
             >
               <div className="font-semibold">
-                {t.name} <Badge variant="secondary">MET {t.met}</Badge>
+                {d(tt.name)} <Badge variant="secondary">MET {tt.met}</Badge>
               </div>
-              <div className="mt-1 text-sm text-muted-foreground">推荐 {t.recommendMin} 分钟</div>
-              <div className="mt-0.5 text-xs text-muted-foreground">{t.tip}</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                {t('training.cmRecommend', { n: tt.recommendMin })}
+              </div>
+              <div className="mt-0.5 text-xs text-muted-foreground">{d(tt.tip)}</div>
             </div>
           ))}
         </div>
         <div className="space-y-1.5">
-          <Label>本次时长 (分钟)</Label>
+          <Label>{t('training.cmDuration')}</Label>
           <Input
             type="number"
             inputMode="numeric"
@@ -462,7 +474,7 @@ function CardioModal({
         </div>
         {err && <p className="text-sm text-destructive">{err}</p>}
         <Button className="w-full" onClick={finish}>
-          完成打卡
+          {t('training.cmFinish')}
         </Button>
       </div>
     </Modal>
