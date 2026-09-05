@@ -12,6 +12,7 @@ import {
 import { useI18n } from '@/i18n/i18nStore';
 import { useLibraryStore } from '@/store/libraryStore';
 
+import { AddCardioModal } from '../components/AddCardioModal';
 import { AddExerciseModal } from '../components/AddExerciseModal';
 
 const GROUPS = ['胸部', '背部', '腿部', '核心', '肩部', '手臂'];
@@ -42,9 +43,10 @@ function GroupTag({
 
 export default function LibraryPage() {
   const { t, d } = useI18n();
-  const { library, addExercise } = useLibraryStore();
+  const { library, addExercise, addCardioTemplate } = useLibraryStore();
   const [group, setGroup] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [showAddCardio, setShowAddCardio] = useState(false);
 
   const exercises = useMemo(() => {
     const all = library.getAllExercises();
@@ -68,10 +70,16 @@ export default function LibraryPage() {
               <GroupTag key={g} label={d(g)} active={group === g} onClick={() => setGroup(g)} />
             ))}
           </div>
-          <Button className="w-full" variant="secondary" onClick={() => setShowAdd(true)}>
-            <Plus className="size-4" />
-            {t('lib.addStrength')}
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button className="w-full" variant="secondary" onClick={() => setShowAdd(true)}>
+              <Plus className="size-4" />
+              {t('lib.addStrength')}
+            </Button>
+            <Button className="w-full" variant="secondary" onClick={() => setShowAddCardio(true)}>
+              <Plus className="size-4" />
+              {t('lib.addCardio')}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -127,6 +135,9 @@ export default function LibraryPage() {
       </Card>
 
       {showAdd && <AddExerciseModal onClose={() => setShowAdd(false)} onAdd={addExercise} />}
+      {showAddCardio && (
+        <AddCardioModal onClose={() => setShowAddCardio(false)} onAdd={addCardioTemplate} />
+      )}
     </div>
   );
 }

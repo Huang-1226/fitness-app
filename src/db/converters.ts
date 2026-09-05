@@ -3,9 +3,11 @@ import { DailyTraining } from '../core/dailyTraining';
 import { Exercise, MuscleRatio } from '../core/exercise';
 import { Person } from '../core/person';
 import { WeightRecord } from '../core/weightRecord';
+import { CardioTemplate } from '../core/workoutLibrary';
 import { SetRecord, WorkoutLog } from '../core/workoutLog';
 import type {
   CardioRecordDTO,
+  CardioTemplateDTO,
   DailyTrainingDTO,
   ExerciseDTO,
   PersonDTO,
@@ -69,6 +71,19 @@ export function cardioToDTO(c: CardioRecord): CardioRecordDTO {
 
 export function cardioFromDTO(dto: CardioRecordDTO): CardioRecord {
   return new CardioRecord(dto.cardioName, dto.metValue, dto.minute);
+}
+
+export function cardioTemplateToDTO(t: CardioTemplate): CardioTemplateDTO {
+  return {
+    name: t.name,
+    met: t.met,
+    recommendMin: t.recommendMin,
+    tip: t.tip,
+  };
+}
+
+export function cardioTemplateFromDTO(dto: CardioTemplateDTO): CardioTemplate {
+  return new CardioTemplate(dto.name, dto.met, dto.recommendMin, dto.tip);
 }
 
 export function weightRecordToDTO(wr: WeightRecord): WeightRecordDTO {

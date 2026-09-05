@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { CardioRecord } from '../core/cardioRecord';
+import { todayISO } from '../core/dateUtil';
 import { DailyTraining } from '../core/dailyTraining';
 import { WorkoutLog } from '../core/workoutLog';
 import { trainingFromDTO, trainingToDTO } from '../db/converters';
@@ -35,11 +36,24 @@ export const useTrainingStore = create<TrainingState>()((set, get) => ({
     try {
       const all = await trainingsTable.toArray();
       const todayRow = all.find((r) => r.date === TODAY_KEY);
-      const historyRows = all
+      let todayTrain = todayRow ? trainingFromDTO(todayRow.data) : null;
+
+      if (todayTrain && todayTrain.getDate() !== todayISO()) {
+        const stale = todayTrain;
+        const hasContent =
+          stale.getWorkoutLogs().length > 0 || stale.getCardioList().length > 0;
+        if (hasContent) {
+          await trainingsTable.put({ date: stale.getDate(), data: trainingToDTO(stale) });
+        }
+        await trainingsTable.delete(TODAY_KEY);
+        todayTrain = null;
+      }
+
+      const historyRows = (await trainingsTable.toArray())
         .filter((r) => r.date !== TODAY_KEY && isRealDate(r.date))
         .sort((a, b) => (a.date < b.date ? 1 : -1));
       set({
-        todayTrain: todayRow ? trainingFromDTO(todayRow.data) : null,
+        todayTrain,
         history: historyRows.map((r) => trainingFromDTO(r.data)),
       });
     } finally {

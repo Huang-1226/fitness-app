@@ -29,6 +29,13 @@ export interface CardioRecordDTO {
   minute: number;
 }
 
+export interface CardioTemplateDTO {
+  name: string;
+  met: number;
+  recommendMin: number;
+  tip: string;
+}
+
 export interface WeightRecordDTO {
   date: string;
   weight: number;

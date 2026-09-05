@@ -15,11 +15,13 @@ export const zh = {
   'lang.zh': '中文',
   'lang.en': 'English',
 
+  'settings.title': '设置',
+  'settings.aria': '打开设置',
+
   'theme.title': '外观主题',
   'theme.light': '浅色',
   'theme.dark': '深色',
   'theme.system': '跟随系统',
-  'theme.toggleAria': '切换主题',
 
   'home.title': '我的档案',
   'home.createProfile': '创建个人档案',
@@ -171,18 +173,24 @@ export const zh = {
 
   'lib.title': '动作库',
   'lib.all': '全部',
-  'lib.addStrength': '＋ 新增力量动作',
+  'lib.addStrength': '新增力量动作',
+  'lib.addCardio': '新增有氧动作',
   'lib.strength': '力量动作（{n}）',
   'lib.cardioTemplates': '有氧模板',
   'lib.recommend': '推荐 {sets}组×{reps}次',
   'lib.addTitle': '新增力量动作',
+  'lib.addCardioTitle': '新增有氧动作',
   'lib.name': '动作名称',
   'lib.namePh': '如 杠铃弯举',
+  'lib.cardioNamePh': '如 椭圆机',
   'lib.group': '所属肌群',
   'lib.sets': '推荐组数',
   'lib.reps': '推荐次数',
   'lib.setsReps': '{s}组×{r}次',
   'lib.met': 'MET 值',
+  'lib.cardioMinutes': '推荐时长 (分钟)',
+  'lib.cardioTip': '建议提示',
+  'lib.cardioTipPh': '如 全身有氧，膝关节负荷低',
   'lib.muscleRatio': '发力肌肉占比（可选）',
   'lib.muscleName': '肌肉名称',
   'lib.ratio': '占比 %',
@@ -190,6 +198,7 @@ export const zh = {
   'lib.nameRequired': '动作名称不能为空',
   'lib.saveFail': '保存失败',
   'lib.saveExercise': '保存动作',
+  'lib.saveCardio': '保存有氧动作',
 } as const;
 
 export type TKey = keyof typeof zh;
@@ -211,11 +220,13 @@ export const en: Record<TKey, string> = {
   'lang.zh': '中文',
   'lang.en': 'English',
 
+  'settings.title': 'Settings',
+  'settings.aria': 'Open settings',
+
   'theme.title': 'Appearance',
   'theme.light': 'Light',
   'theme.dark': 'Dark',
   'theme.system': 'System',
-  'theme.toggleAria': 'Toggle theme',
 
   'home.title': 'My Profile',
   'home.createProfile': 'Create Profile',
@@ -367,18 +378,24 @@ export const en: Record<TKey, string> = {
 
   'lib.title': '🗂️ Exercise Library',
   'lib.all': 'All',
-  'lib.addStrength': '＋ Add Exercise',
+  'lib.addStrength': 'Add Exercise',
+  'lib.addCardio': 'Add Cardio',
   'lib.strength': 'Strength Exercises ({n})',
   'lib.cardioTemplates': 'Cardio Templates',
   'lib.recommend': 'Recommended {sets}×{reps}',
   'lib.addTitle': 'Add Exercise',
+  'lib.addCardioTitle': 'Add Cardio',
   'lib.name': 'Name',
   'lib.namePh': 'e.g. Barbell Curl',
+  'lib.cardioNamePh': 'e.g. Elliptical',
   'lib.group': 'Group',
   'lib.sets': 'Sets',
   'lib.reps': 'Reps',
   'lib.setsReps': '{s}×{r}',
   'lib.met': 'MET value',
+  'lib.cardioMinutes': 'Recommended duration (min)',
+  'lib.cardioTip': 'Tip',
+  'lib.cardioTipPh': 'e.g. Full-body cardio, low knee load',
   'lib.muscleRatio': 'Muscle share (optional)',
   'lib.muscleName': 'Muscle name',
   'lib.ratio': 'Share %',
@@ -386,6 +403,7 @@ export const en: Record<TKey, string> = {
   'lib.nameRequired': 'Name cannot be empty',
   'lib.saveFail': 'Save failed',
   'lib.saveExercise': 'Save Exercise',
+  'lib.saveCardio': 'Save Cardio',
 };
 
 export function formatKey(key: TKey, params?: Record<string, string | number>): string {

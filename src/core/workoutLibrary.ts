@@ -394,6 +394,12 @@ export class WorkoutLibrary {
     return null;
   }
 
+  addCardioTemplate(t: CardioTemplate | null): void {
+    if (t !== null && t !== undefined && this.getCardioByName(t.name) === null) {
+      this.cardioBaseList.push(t);
+    }
+  }
+
   getCardioTemplates(): CardioTemplate[] {
     return [...this.cardioBaseList];
   }
