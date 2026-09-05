@@ -4,6 +4,7 @@
 
 /* ===== 设计令牌（shadcn/ui 语义变量） ===== */
 :root {
+  color-scheme: light;
   --background: #f8fafc;
   --foreground: #0f172a;
   --card: #ffffff;
@@ -27,6 +28,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: #0f1520;
   --foreground: #e5ecf5;
   --card: #1a2233;
@@ -86,6 +88,29 @@
   body {
     @apply bg-background text-foreground antialiased;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* 原生下拉框选项列表跟随主题（部分浏览器需元素自身声明 color-scheme） */
+  select,
+  option {
+    color-scheme: inherit;
+  }
+
+  .dark select,
+  .dark option,
+  .dark optgroup {
+    color-scheme: dark;
+  }
+
+  .dark option,
+  .dark optgroup {
+    background-color: var(--card);
+    color: var(--foreground);
+  }
+
+  .dark optgroup {
+    color: var(--muted-foreground);
+    font-weight: 600;
   }
 
   /* 移动端 App 外壳：居中单列 */
