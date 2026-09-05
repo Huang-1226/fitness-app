@@ -31,9 +31,9 @@ export function SettingsButton() {
   return (
     <>
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
-        className="size-9 shrink-0 rounded-full border-border bg-card/90 shadow-sm backdrop-blur"
+        className="size-9 shrink-0"
         aria-label={t('settings.aria')}
         onClick={() => setOpen(true)}
       >

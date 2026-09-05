@@ -104,13 +104,18 @@ export default function PlanPage() {
   const [showAddEx, setShowAddEx] = useState(false);
 
   const allMuscles = useMemo(() => {
-    const set = new Set<string>();
+    const groups = ['胸部', '背部', '腿部', '核心', '肩部', '手臂'];
+    const list = groups.map((g) => ({ group: g, muscles: new Set<string>() }));
     for (const e of library.getAllExercises()) {
+      const gi = groups.indexOf(e.getTrainGroup());
+      if (gi < 0) continue;
       for (const m of e.getMuscleRatios()) {
-        set.add(m.getMuscleName());
+        list[gi].muscles.add(m.getMuscleName());
       }
     }
-    return [...set].sort();
+    return list
+      .map((g) => ({ group: g.group, muscles: [...g.muscles].sort() }))
+      .filter((g) => g.muscles.length > 0);
   }, [library]);
 
   const [actCode, setActCode] = useState<number>(() => {
@@ -333,10 +338,14 @@ export default function PlanPage() {
               }}
             >
               <option value="">{t('plan.selectMuscle')}</option>
-              {allMuscles.map((m) => (
-                <option key={m} value={m}>
-                  {d(m)}
-                </option>
+              {allMuscles.map((g) => (
+                <optgroup key={g.group} label={d(g.group)}>
+                  {g.muscles.map((m) => (
+                    <option key={m} value={m}>
+                      {d(m)}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </Select>
           </div>
