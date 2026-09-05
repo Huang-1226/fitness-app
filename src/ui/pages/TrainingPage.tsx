@@ -24,6 +24,7 @@ import { Select } from '@/ui/components/Select';
 import { Stat } from '@/ui/components/Stat';
 
 import { Modal } from '../components/Modal';
+import { PageHeader } from '../components/PageHeader';
 
 function lastTrainDateForGroup(history: DailyTraining[], group: string): string | null {
   let latest: string | null = null;
@@ -66,13 +67,10 @@ export default function TrainingPage() {
   const volume = useMemo(() => todayTrain?.getDailyTotalVolume() ?? 0, [todayTrain]);
 
   if (!user) {
-    return (
-      <div className="px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))]">
-        <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold">
-          <Dumbbell className="size-6 text-primary" />
-          {t('training.title')}
-        </h1>
-        <Card className="gap-0 rounded-xl border-border py-0 shadow-sm">
+return (
+        <div className="px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))]">
+          <PageHeader icon={Dumbbell} title={t('training.title')} />
+          <Card className="gap-0 rounded-xl border-border py-0 shadow-sm">
           <CardContent className="p-4">
             <p className="py-6 text-center text-sm text-muted-foreground">
               {t('training.noProfile')}
@@ -85,10 +83,7 @@ export default function TrainingPage() {
 
   return (
     <div className="px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))]">
-      <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold">
-        <Dumbbell className="size-6 text-primary" />
-        {t('training.title')}
-      </h1>
+      <PageHeader icon={Dumbbell} title={t('training.title')} />
 
       {!todayTrain ? (
         <Card className="gap-0 rounded-xl border-border py-0 shadow-sm">

@@ -26,6 +26,7 @@ import { Select } from '@/ui/components/Select';
 import { Stat } from '@/ui/components/Stat';
 
 import { AddExerciseModal } from '../components/AddExerciseModal';
+import { PageHeader } from '../components/PageHeader';
 
 /** PPL 三分化每日的语义色（Tailwind 令牌色） */
 const PPL_COLORS = [
@@ -254,10 +255,7 @@ export default function PlanPage() {
 
   return (
     <div className="px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))]">
-      <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold">
-        <ClipboardList className="size-6 text-primary" />
-        {t('plan.title')}
-      </h1>
+      <PageHeader icon={ClipboardList} title={t('plan.title')} />
 
       <Card className="gap-0 rounded-xl border-border py-0 shadow-sm">
         <CardHeader className="px-4 pt-4">

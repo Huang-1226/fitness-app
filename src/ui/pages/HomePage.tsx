@@ -18,6 +18,7 @@ import { Stat } from '@/ui/components/Stat';
 
 import { useUserStore } from '../../store/userStore';
 import { Modal } from '../components/Modal';
+import { PageHeader } from '../components/PageHeader';
 
 function ProfileForm({
   initial,
@@ -123,10 +124,7 @@ export default function HomePage() {
 
   return (
     <div className="px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))]">
-      <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold">
-        <Dumbbell className="size-6 text-primary" />
-        {t('home.title')}
-      </h1>
+      <PageHeader icon={Dumbbell} title={t('home.title')} />
 
       {!user && (
         <Card className="gap-0 rounded-xl border-border py-0 shadow-sm">

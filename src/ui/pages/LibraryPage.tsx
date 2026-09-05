@@ -14,6 +14,7 @@ import { useLibraryStore } from '@/store/libraryStore';
 
 import { AddCardioModal } from '../components/AddCardioModal';
 import { AddExerciseModal } from '../components/AddExerciseModal';
+import { PageHeader } from '../components/PageHeader';
 
 const GROUPS = ['胸部', '背部', '腿部', '核心', '肩部', '手臂'];
 
@@ -57,10 +58,7 @@ export default function LibraryPage() {
 
   return (
     <div className="px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))]">
-      <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold">
-        <Library className="size-6 text-primary" />
-        {t('lib.title')}
-      </h1>
+      <PageHeader icon={Library} title={t('lib.title')} />
 
       <Card className="gap-0 rounded-xl border-border py-0 shadow-sm">
         <CardContent className="space-y-3 p-4">

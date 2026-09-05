@@ -11,6 +11,7 @@ import {
 import { addDaysISO, daysBetween, todayISO } from '@/core/dateUtil';
 import { useI18n } from '@/i18n/i18nStore';
 import { useTrainingStore } from '@/store/trainingStore';
+import { PageHeader } from '@/ui/components/PageHeader';
 import { Stat } from '@/ui/components/Stat';
 
 const CHART_W = 294;
@@ -123,10 +124,7 @@ export default function HistoryPage() {
 
   return (
     <div className="px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))]">
-      <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold">
-        <BarChart3 className="size-6 text-primary" />
-        {t('history.title')}
-      </h1>
+      <PageHeader icon={BarChart3} title={t('history.title')} />
 
       <Card className="gap-0 rounded-xl border-border py-0 shadow-sm">
         <CardHeader className="px-4 pt-4">
