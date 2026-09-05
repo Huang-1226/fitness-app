@@ -112,8 +112,9 @@ export default function HistoryPage() {
     const sessions = todayTrain ? [todayTrain, ...history] : history;
     for (const tt of sessions) {
       const date = tt.getDate();
-      if (date >= agoISO && date <= today) {
-        burnByDate.set(date, (burnByDate.get(date) ?? 0) + tt.getStrengthBurn() + tt.getCardioBurn());
+      const burn = tt.getStrengthBurn() + tt.getCardioBurn();
+      if (date >= agoISO && date <= today && burn > 0) {
+        burnByDate.set(date, (burnByDate.get(date) ?? 0) + burn);
       }
     }
     const trainDayCount = burnByDate.size;

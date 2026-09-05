@@ -4,7 +4,7 @@ import { todayISO } from '../core/dateUtil';
 import { DailyTraining } from '../core/dailyTraining';
 import { WorkoutLog } from '../core/workoutLog';
 import { trainingFromDTO, trainingToDTO } from '../db/converters';
-import { trainingsTable } from '../db/db';
+import { trainingsTable, type TrainingRow } from '../db/db';
 import { useUserStore } from './userStore';
 
 const TODAY_KEY = 'TODAY';
@@ -27,6 +27,14 @@ function isRealDate(key: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(key);
 }
 
+function hasTrainingContent(t: DailyTraining): boolean {
+  if (t.getCardioList().length > 0) return true;
+  for (const log of t.getWorkoutLogs()) {
+    if (log.getSetRecords().length > 0) return true;
+  }
+  return false;
+}
+
 export const useTrainingStore = create<TrainingState>()((set, get) => ({
   todayTrain: null,
   history: [],
@@ -40,21 +48,27 @@ export const useTrainingStore = create<TrainingState>()((set, get) => ({
 
       if (todayTrain && todayTrain.getDate() !== todayISO()) {
         const stale = todayTrain;
-        const hasContent =
-          stale.getWorkoutLogs().length > 0 || stale.getCardioList().length > 0;
-        if (hasContent) {
+        if (hasTrainingContent(stale)) {
           await trainingsTable.put({ date: stale.getDate(), data: trainingToDTO(stale) });
         }
         await trainingsTable.delete(TODAY_KEY);
         todayTrain = null;
       }
 
-      const historyRows = (await trainingsTable.toArray())
+      const rows = (await trainingsTable.toArray())
         .filter((r) => r.date !== TODAY_KEY && isRealDate(r.date))
         .sort((a, b) => (a.date < b.date ? 1 : -1));
+      const validRows: TrainingRow[] = [];
+      for (const row of rows) {
+        if (hasTrainingContent(trainingFromDTO(row.data))) {
+          validRows.push(row);
+        } else {
+          await trainingsTable.delete(row.date);
+        }
+      }
       set({
         todayTrain,
-        history: historyRows.map((r) => trainingFromDTO(r.data)),
+        history: validRows.map((r) => trainingFromDTO(r.data)),
       });
     } finally {
       set({ loaded: true });
@@ -104,8 +118,12 @@ export const useTrainingStore = create<TrainingState>()((set, get) => ({
     const t = get().todayTrain;
     if (!t) return;
     const dateKey = t.getDate();
-    await trainingsTable.put({ date: dateKey, data: trainingToDTO(t) });
     await trainingsTable.delete(TODAY_KEY);
+    if (!hasTrainingContent(t)) {
+      set({ todayTrain: null });
+      return;
+    }
+    await trainingsTable.put({ date: dateKey, data: trainingToDTO(t) });
     const archived = trainingFromDTO(trainingToDTO(t));
     set({
       todayTrain: null,

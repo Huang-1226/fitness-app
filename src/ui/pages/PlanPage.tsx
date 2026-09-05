@@ -12,9 +12,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { todayISO } from '@/core/dateUtil';
 import type { Exercise } from '@/core/exercise';
 import {
   calculateFullNutrition,
+  getRemainingMeals,
   type Mode,
 } from '@/core/nutritionCalculator';
 import { WorkoutLog } from '@/core/workoutLog';
@@ -34,6 +36,12 @@ const PPL_COLORS = [
   { title: 'text-blue-500', dot: 'bg-blue-500' },
   { title: 'text-emerald-500', dot: 'bg-emerald-500' },
 ] as const;
+
+const MEAL_KEYS = {
+  breakfast: 'plan.breakfast',
+  lunch: 'plan.lunch',
+  dinner: 'plan.dinner',
+} as const;
 
 function planStats(list: Exercise[]) {
   const totalSets = list.reduce((s, e) => s + e.getSets(), 0);
@@ -87,7 +95,7 @@ function Message({ ok, text }: { ok: boolean; text: string }) {
 export default function PlanPage() {
   const { t, d } = useI18n();
   const user = useUserStore((s) => s.user);
-  const { todayTrain, addWorkoutLog, createToday } = useTrainingStore();
+  const { todayTrain, history, addWorkoutLog, createToday } = useTrainingStore();
   const { library, addExercise } = useLibraryStore();
 
   const [planMode, setPlanMode] = useState(1);
@@ -166,6 +174,21 @@ export default function PlanPage() {
     setPlanMsgOk(true);
   };
 
+  const todaySessions = useMemo(() => {
+    const sessions = todayTrain ? [todayTrain, ...history] : history;
+    return sessions.filter((s) => s.getDate() === todayISO());
+  }, [todayTrain, history]);
+  const todayStrengthBurn = useMemo(
+    () => todaySessions.reduce((sum, s) => sum + s.getStrengthBurn(), 0),
+    [todaySessions],
+  );
+  const todayCardioBurn = useMemo(
+    () => todaySessions.reduce((sum, s) => sum + s.getCardioBurn(), 0),
+    [todaySessions],
+  );
+  const todayBurnTotal = todayStrengthBurn + todayCardioBurn;
+  const remainingMeals = getRemainingMeals();
+
   const buildDiet = () => {
     if (!user) {
       setDietErr(t('plan.noProfile'));
@@ -173,8 +196,7 @@ export default function PlanPage() {
       return;
     }
     try {
-      const todayBurn = todayTrain ? todayTrain.getStrengthBurn() + todayTrain.getCardioBurn() : 0;
-      const result = calculateFullNutrition(user, dietMode, effectiveActCode, todayBurn);
+      const result = calculateFullNutrition(user, dietMode, effectiveActCode, todayBurnTotal);
       setDietResult(result);
       setDietErr('');
     } catch (e) {
@@ -254,9 +276,6 @@ export default function PlanPage() {
       </div>
     );
   };
-
-  const strengthBurn = todayTrain ? todayTrain.getStrengthBurn() : 0;
-  const cardioBurn = todayTrain ? todayTrain.getCardioBurn() : 0;
 
   return (
     <div className="px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))]">
@@ -467,18 +486,12 @@ export default function PlanPage() {
               </div>
 
               <p className="font-semibold">{t('plan.mealSplit')}</p>
-              {(
-                [
-                  ['plan.breakfast', 0.3],
-                  ['plan.lunch', 0.4],
-                  ['plan.dinner', 0.3],
-                ] as const
-              ).map(([labelKey, ratio]) => (
+              {remainingMeals.map(({ key, ratio }) => (
                 <div
                   className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0"
-                  key={labelKey}
+                  key={key}
                 >
-                  <span className="text-muted-foreground">{t(labelKey)}</span>
+                  <span className="text-muted-foreground">{t(MEAL_KEYS[key])}</span>
                   <span className="text-right">
                     {Math.round(dietResult.targetCal * ratio)} kcal · {t('plan.protein')}
                     {Math.round(dietResult.proteinG * ratio)}g · {t('plan.carb')}
@@ -489,19 +502,19 @@ export default function PlanPage() {
               ))}
 
               <p className="pt-1 font-semibold">{t('plan.trainBurn')}</p>
-              {todayTrain ? (
+              {todaySessions.length > 0 ? (
                 <>
                   <div className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0">
                     <span className="text-muted-foreground">{t('training.strengthBurn')}</span>
-                    <span>{Math.round(strengthBurn)} kcal</span>
+                    <span>{Math.round(todayStrengthBurn)} kcal</span>
                   </div>
                   <div className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0">
                     <span className="text-muted-foreground">{t('training.cardioBurn')}</span>
-                    <span>{Math.round(cardioBurn)} kcal</span>
+                    <span>{Math.round(todayCardioBurn)} kcal</span>
                   </div>
                   <div className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0">
                     <span className="text-muted-foreground">{t('plan.totalIncluded')}</span>
-                    <span>{Math.round(strengthBurn + cardioBurn)} kcal</span>
+                    <span>{Math.round(todayBurnTotal)} kcal</span>
                   </div>
                 </>
               ) : (

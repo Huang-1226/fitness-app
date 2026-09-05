@@ -1,6 +1,6 @@
 import { Person } from '../src/core/person';
 import { WorkoutLibrary } from '../src/core/workoutLibrary';
-import { calculateFullNutrition, getTargetCalories } from '../src/core/nutritionCalculator';
+import { calculateFullNutrition, getTargetCalories, getRemainingMeals } from '../src/core/nutritionCalculator';
 import { DailyTraining } from '../src/core/dailyTraining';
 import { WorkoutLog } from '../src/core/workoutLog';
 import { CardioRecord } from '../src/core/cardioRecord';
@@ -63,5 +63,14 @@ const cardio = new CardioRecord('慢跑', 8.0, 30);
 t.addCardio(cardio);
 assertClose(t.getCardioBurn(), 70 * 8.0 * 0.5, 'cardio burn 30min');
 assertClose(t.calculateWholeBurn(70), expectedStrengthBurn + 70 * 8.0 * 0.5, 'whole burn');
+
+const morning = getRemainingMeals(new Date(2026, 8, 5, 8, 0));
+assertTrue(morning.length === 3 && morning[0].key === 'breakfast', 'morning: 3 meals');
+const noon = getRemainingMeals(new Date(2026, 8, 5, 12, 0));
+assertTrue(noon.length === 2 && noon[0].key === 'lunch', 'after 10:00: lunch + dinner');
+assertClose(noon[0].ratio + noon[1].ratio, 1, 'remaining meal ratios sum to 1');
+const evening = getRemainingMeals(new Date(2026, 8, 5, 18, 0));
+assertTrue(evening.length === 1 && evening[0].key === 'dinner', 'after 15:00: dinner only');
+assertClose(evening[0].ratio, 1, 'dinner full ratio');
 
 console.log('\n验证完成');

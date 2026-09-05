@@ -1,5 +1,5 @@
 import { Dumbbell, Pencil, Scale } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,8 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { todayISO } from '@/core/dateUtil';
 import type { Person } from '@/core/person';
-import type { WeightRecord } from '@/core/weightRecord';
 import { useI18n } from '@/i18n/i18nStore';
 import { Select } from '@/ui/components/Select';
 import { Stat } from '@/ui/components/Stat';
@@ -95,110 +95,6 @@ function ProfileForm({
   );
 }
 
-const W_CHART_W = 294;
-const W_CHART_H = 150;
-const W_PAD_L = 6;
-const W_PAD_R = 6;
-const W_PAD_T = 20;
-const W_PAD_B = 22;
-const W_INNER_W = W_CHART_W - W_PAD_L - W_PAD_R;
-const W_INNER_H = W_CHART_H - W_PAD_T - W_PAD_B;
-
-function WeightChart({ records }: { records: WeightRecord[] }) {
-  const { t } = useI18n();
-  const sorted = useMemo(
-    () => [...records].sort((a, b) => (a.getRecordDate() < b.getRecordDate() ? -1 : 1)),
-    [records],
-  );
-  if (sorted.length === 0) return null;
-
-  const weights = sorted.map((r) => r.getWeight());
-  let lo = Math.min(...weights);
-  let hi = Math.max(...weights);
-  const span = hi - lo;
-  if (span === 0) {
-    lo -= 1;
-    hi += 1;
-  } else {
-    const pad = span * 0.15;
-    lo -= pad;
-    hi += pad;
-  }
-
-  const n = sorted.length;
-  const x = (i: number) => W_PAD_L + (n === 1 ? W_INNER_W / 2 : (i / (n - 1)) * W_INNER_W);
-  const y = (w: number) => W_PAD_T + (1 - (w - lo) / (hi - lo)) * W_INNER_H;
-  const points = sorted.map((r, i) => ({ x: x(i), y: y(r.getWeight()), r }));
-  const path = points
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
-    .join(' ');
-  const showAllLabels = n <= 6;
-
-  return (
-    <svg
-      viewBox={`0 0 ${W_CHART_W} ${W_CHART_H}`}
-      className="h-auto w-full"
-      role="img"
-      aria-label={t('home.weightChartAria')}
-    >
-      <line
-        x1={W_PAD_L}
-        y1={W_PAD_T}
-        x2={W_PAD_L}
-        y2={W_PAD_T + W_INNER_H}
-        className="stroke-border"
-        strokeWidth={1}
-      />
-      <line
-        x1={W_PAD_L}
-        y1={W_PAD_T + W_INNER_H}
-        x2={W_PAD_L + W_INNER_W}
-        y2={W_PAD_T + W_INNER_H}
-        className="stroke-border"
-        strokeWidth={1}
-      />
-      <path
-        d={path}
-        fill="none"
-        className="stroke-primary"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {points.map((p, i) => {
-        const [, m, d] = p.r.getRecordDate().split('-');
-        return (
-          <g key={p.r.getRecordDate()}>
-            <circle cx={p.x} cy={p.y} r={3.5} className="fill-primary" />
-            {(showAllLabels || i === 0 || i === n - 1) && (
-              <text
-                x={p.x}
-                y={p.y - 8}
-                textAnchor="middle"
-                className="fill-muted-foreground"
-                fontSize={9}
-              >
-                {p.r.getWeight()}
-              </text>
-            )}
-            {(showAllLabels || i === 0 || i === n - 1) && (
-              <text
-                x={p.x}
-                y={W_CHART_H - 4}
-                textAnchor="middle"
-                className="fill-muted-foreground"
-                fontSize={9}
-              >
-                {Number(m)}/{Number(d)}
-              </text>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
 export default function HomePage() {
   const { t, d } = useI18n();
   const { user, loaded, createProfile, setActivityCode, addWeightRecord } = useUserStore();
@@ -210,6 +106,10 @@ export default function HomePage() {
   if (!loaded) {
     return <div className="px-4 pt-4">{t('common.loading')}</div>;
   }
+
+  const todayWeight = user
+    ? user.getWeightRecordList().find((r) => r.getRecordDate() === todayISO())
+    : null;
 
   const saveProfile = async (gender: string, height: number, weight: number, age: number) => {
     await createProfile(gender, height, weight, age);
@@ -296,10 +196,16 @@ export default function HomePage() {
                 <option value={4}>{t('activity.4')}</option>
               </Select>
               <p className="mt-1.5 text-xs text-muted-foreground">{t('home.activityTip')}</p>
-              <Button className="mt-4 w-full" variant="secondary" onClick={() => setShowWeight(true)}>
-                <Scale className="size-4" />
-                {t('home.logWeight')}
-              </Button>
+              {todayWeight ? (
+                <p className="mt-4 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground">
+                  {t('home.weightLoggedToday', { w: todayWeight.getWeight() })}
+                </p>
+              ) : (
+                <Button className="mt-4 w-full" variant="secondary" onClick={() => setShowWeight(true)}>
+                  <Scale className="size-4" />
+                  {t('home.logWeight')}
+                </Button>
+              )}
             </CardContent>
           </Card>
 
@@ -311,24 +217,19 @@ export default function HomePage() {
                   {t('home.noWeightRecords')}
                 </p>
               ) : (
-                <>
-                  <WeightChart records={user.getWeightRecordList()} />
-                  <div className="mt-3">
-                    {user
-                      .getWeightRecordList()
-                      .slice()
-                      .reverse()
-                      .map((r) => (
-                        <div
-                          className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0"
-                          key={r.getRecordDate()}
-                        >
-                          <span className="text-muted-foreground">{r.getRecordDate()}</span>
-                          <span>{r.getWeight()} kg</span>
-                        </div>
-                      ))}
-                  </div>
-                </>
+                user
+                  .getWeightRecordList()
+                  .slice()
+                  .reverse()
+                  .map((r) => (
+                    <div
+                      className="flex items-center justify-between gap-2.5 border-b border-border py-2 last:border-0"
+                      key={r.getRecordDate()}
+                    >
+                      <span className="text-muted-foreground">{r.getRecordDate()}</span>
+                      <span>{r.getWeight()} kg</span>
+                    </div>
+                  ))
               )}
             </CardContent>
           </Card>

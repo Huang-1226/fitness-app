@@ -83,3 +83,28 @@ export function formatNutritionResult(result: NutritionResult): string {
     `碳水：${carbStr} g`
   );
 }
+
+export type MealKey = 'breakfast' | 'lunch' | 'dinner';
+
+export interface MealSplit {
+  key: MealKey;
+  ratio: number;
+}
+
+export function getRemainingMeals(date: Date = new Date()): MealSplit[] {
+  const hour = date.getHours();
+  if (hour >= 15) {
+    return [{ key: 'dinner', ratio: 1 }];
+  }
+  if (hour >= 10) {
+    return [
+      { key: 'lunch', ratio: 4 / 7 },
+      { key: 'dinner', ratio: 3 / 7 },
+    ];
+  }
+  return [
+    { key: 'breakfast', ratio: 0.3 },
+    { key: 'lunch', ratio: 0.4 },
+    { key: 'dinner', ratio: 0.3 },
+  ];
+}
