@@ -325,7 +325,7 @@ export const en: Record<TKey, string> = {
   'history.delete': 'Delete Record',
   'history.summary': '{n} records · oldest {d} days ago',
 
-  'plan.title': '📋 Plan & Diet',
+  'plan.title': 'Plan & Diet',
   'plan.planGen': 'Training Plan Generator',
   'plan.mode': 'Mode',
   'plan.fullBody': 'Full Body',
@@ -378,7 +378,7 @@ export const en: Record<TKey, string> = {
   'plan.hintImport': "Tip: start today's training before importing a plan",
   'plan.createToday': "Start Today's Training Now",
 
-  'lib.title': '🗂️ Exercise Library',
+  'lib.title': 'Exercise Library',
   'lib.all': 'All',
   'lib.addStrength': 'Add Exercise',
   'lib.addCardio': 'Add Cardio',
