@@ -38,8 +38,15 @@ export function AddExerciseModal({
       setErr(t('lib.nameRequired'));
       return;
     }
+    const setCount = Number(sets);
+    const repCount = Number(reps);
+    const metValue = Number(met);
+    if (!setCount || setCount <= 0 || !repCount || repCount <= 0 || !metValue || metValue <= 0) {
+      setErr(t('lib.invalidNumbers'));
+      return;
+    }
     try {
-      const ex = new Exercise(name.trim(), trainGroup, Number(sets), Number(reps), Number(met));
+      const ex = new Exercise(name.trim(), trainGroup, setCount, repCount, metValue);
       for (const m of muscles) {
         ex.getMuscleRatios().push(new MuscleRatio(m.name.trim(), Number(m.ratio)));
       }

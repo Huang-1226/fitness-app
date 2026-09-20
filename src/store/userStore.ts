@@ -46,8 +46,9 @@ export const useUserStore = create<UserState>()((set, get) => ({
     const u = get().user;
     if (!u) return;
     u.setActivityCode(code);
-    await persist(u);
-    set({ user: u });
+    const next = u.clone();
+    await persist(next);
+    set({ user: next });
   },
 
   addWeightRecord: async (weight) => {
@@ -56,8 +57,10 @@ export const useUserStore = create<UserState>()((set, get) => ({
     const date = todayISO();
     const exists = u.getWeightRecordList().some((r) => r.getRecordDate() === date);
     if (exists) return;
+    u.setWeight(weight);
     u.addWeightRecord(new WeightRecord(date, weight));
-    await persist(u);
-    set({ user: u });
+    const next = u.clone();
+    await persist(next);
+    set({ user: next });
   },
 }));

@@ -404,7 +404,14 @@ export class WorkoutLibrary {
     return [...this.cardioBaseList];
   }
 
-  isEmpty(): boolean {
-    return this.exerciseList.length === 0;
+  /**
+   * 返回一个内容相同的新实例。用于状态层「可变对象 + 不可变引用」更新，
+   * 保证 zustand 选择器订阅能感知变化。
+   */
+  clone(): WorkoutLibrary {
+    const copy = new WorkoutLibrary();
+    copy.exerciseList = [...this.exerciseList];
+    copy.cardioBaseList = [...this.cardioBaseList];
+    return copy;
   }
 }

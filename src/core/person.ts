@@ -121,4 +121,15 @@ export class Person {
   getPreciseTDEE(activityCode: number, todayTrainBurnCal: number): number {
     return this.getTDEE(activityCode) + todayTrainBurnCal;
   }
+
+  /**
+   * 返回一个内容相同的新实例。用于状态层「可变对象 + 不可变引用」更新，
+   * 保证 zustand 选择器订阅能感知变化。
+   */
+  clone(): Person {
+    const copy = new Person(this.gender, this.height, this.weight, this.age);
+    copy.activityCode = this.activityCode;
+    copy.weightRecordList = [...this.weightRecordList];
+    return copy;
+  }
 }

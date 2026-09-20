@@ -17,6 +17,7 @@ interface TrainingState {
   createToday: () => void;
   clearToday: () => void;
   addWorkoutLog: (log: WorkoutLog) => void;
+  addWorkoutLogs: (logs: WorkoutLog[]) => void;
   addCardio: (c: CardioRecord) => void;
   setRemark: (r: string) => void;
   archiveToday: () => Promise<void>;
@@ -35,6 +36,10 @@ function hasTrainingContent(t: DailyTraining): boolean {
   return false;
 }
 
+function persistToday(t: DailyTraining): void {
+  void trainingsTable.put({ date: TODAY_KEY, data: trainingToDTO(t) });
+}
+
 export const useTrainingStore = create<TrainingState>()((set, get) => ({
   todayTrain: null,
   history: [],
@@ -46,16 +51,21 @@ export const useTrainingStore = create<TrainingState>()((set, get) => ({
       const todayRow = all.find((r) => r.date === TODAY_KEY);
       let todayTrain = todayRow ? trainingFromDTO(todayRow.data) : null;
 
+      // 跨天：把过期的「今日训练」归档到真实日期，并从内存列表同步，避免二次全表读取
       if (todayTrain && todayTrain.getDate() !== todayISO()) {
         const stale = todayTrain;
         if (hasTrainingContent(stale)) {
-          await trainingsTable.put({ date: stale.getDate(), data: trainingToDTO(stale) });
+          const archivedRow: TrainingRow = { date: stale.getDate(), data: trainingToDTO(stale) };
+          await trainingsTable.put(archivedRow);
+          const idx = all.findIndex((r) => r.date === archivedRow.date);
+          if (idx >= 0) all[idx] = archivedRow;
+          else all.push(archivedRow);
         }
         await trainingsTable.delete(TODAY_KEY);
         todayTrain = null;
       }
 
-      const rows = (await trainingsTable.toArray())
+      const rows = all
         .filter((r) => r.date !== TODAY_KEY && isRealDate(r.date))
         .sort((a, b) => (a.date < b.date ? 1 : -1));
       const validRows: TrainingRow[] = [];
@@ -82,7 +92,7 @@ export const useTrainingStore = create<TrainingState>()((set, get) => ({
     }
     const t = new DailyTraining(user);
     set({ todayTrain: t });
-    void trainingsTable.put({ date: TODAY_KEY, data: trainingToDTO(t) });
+    persistToday(t);
   },
 
   clearToday: () => {
@@ -94,24 +104,36 @@ export const useTrainingStore = create<TrainingState>()((set, get) => ({
     const t = get().todayTrain;
     if (!t) return;
     t.addWorkoutLog(log);
-    set({ todayTrain: t });
-    void trainingsTable.put({ date: TODAY_KEY, data: trainingToDTO(t) });
+    const next = t.clone();
+    set({ todayTrain: next });
+    persistToday(next);
+  },
+
+  addWorkoutLogs: (logs) => {
+    const t = get().todayTrain;
+    if (!t || logs.length === 0) return;
+    for (const log of logs) t.addWorkoutLog(log);
+    const next = t.clone();
+    set({ todayTrain: next });
+    persistToday(next);
   },
 
   addCardio: (c) => {
     const t = get().todayTrain;
     if (!t) return;
     t.addCardio(c);
-    set({ todayTrain: t });
-    void trainingsTable.put({ date: TODAY_KEY, data: trainingToDTO(t) });
+    const next = t.clone();
+    set({ todayTrain: next });
+    persistToday(next);
   },
 
   setRemark: (r) => {
     const t = get().todayTrain;
     if (!t) return;
     t.setRemark(r);
-    set({ todayTrain: t });
-    void trainingsTable.put({ date: TODAY_KEY, data: trainingToDTO(t) });
+    const next = t.clone();
+    set({ todayTrain: next });
+    persistToday(next);
   },
 
   archiveToday: async () => {
@@ -123,8 +145,9 @@ export const useTrainingStore = create<TrainingState>()((set, get) => ({
       set({ todayTrain: null });
       return;
     }
-    await trainingsTable.put({ date: dateKey, data: trainingToDTO(t) });
-    const archived = trainingFromDTO(trainingToDTO(t));
+    const dto = trainingToDTO(t);
+    await trainingsTable.put({ date: dateKey, data: dto });
+    const archived = trainingFromDTO(dto);
     set({
       todayTrain: null,
       history: [archived, ...get().history.filter((h) => h.getDate() !== dateKey)],

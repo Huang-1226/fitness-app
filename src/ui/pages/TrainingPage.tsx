@@ -14,7 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CardioRecord } from '@/core/cardioRecord';
 import type { DailyTraining } from '@/core/dailyTraining';
-import { findRecoverRuleByGroup } from '@/core/muscleRecoverRule';
+import { daysBetween, todayISO } from '@/core/dateUtil';
+import { findRecoverRuleByGroup, needWarn } from '@/core/muscleRecoverRule';
 import { WorkoutLog } from '@/core/workoutLog';
 import { useI18n } from '@/i18n/i18nStore';
 import { useLibraryStore } from '@/store/libraryStore';
@@ -275,18 +276,14 @@ function StrengthModal({
     const rule = findRecoverRuleByGroup(selected.getTrainGroup());
     if (rule) {
       const last = lastTrainDateForGroup(history, selected.getTrainGroup());
-      if (last) {
-        const today = new Date();
-        const dd = new Date(last + 'T00:00:00');
-        const gap = Math.round((today.getTime() - dd.getTime()) / 86400000);
-        if (gap < rule.recoverDays) {
-          warn = t('training.smRecover', {
-            group: d(selected.getTrainGroup()),
-            date: last,
-            gap,
-            days: rule.recoverDays,
-          });
-        }
+      const today = todayISO();
+      if (last && needWarn(last, today, rule.recoverDays)) {
+        warn = t('training.smRecover', {
+          group: d(selected.getTrainGroup()),
+          date: last,
+          gap: daysBetween(last, today),
+          days: rule.recoverDays,
+        });
       }
     }
   }

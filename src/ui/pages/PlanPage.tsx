@@ -95,7 +95,7 @@ function Message({ ok, text }: { ok: boolean; text: string }) {
 export default function PlanPage() {
   const { t, d } = useI18n();
   const user = useUserStore((s) => s.user);
-  const { todayTrain, history, addWorkoutLog, createToday } = useTrainingStore();
+  const { todayTrain, history, addWorkoutLogs, createToday } = useTrainingStore();
   const { library, addExercise } = useLibraryStore();
 
   const [planMode, setPlanMode] = useState(1);
@@ -167,9 +167,7 @@ export default function PlanPage() {
       setPlanMsgOk(false);
       return;
     }
-    for (const ex of list) {
-      addWorkoutLog(new WorkoutLog(ex));
-    }
+    addWorkoutLogs(list.map((ex) => new WorkoutLog(ex)));
     setPlanMsg(t('plan.imported', { n: list.length }));
     setPlanMsgOk(true);
   };

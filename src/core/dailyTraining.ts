@@ -94,10 +94,6 @@ export class DailyTraining {
     return this.person;
   }
 
-  setPerson(person: Person): void {
-    this.person = person;
-  }
-
   getWorkoutLogs(): WorkoutLog[] {
     return this.workoutLogs;
   }
@@ -106,24 +102,16 @@ export class DailyTraining {
     return this.cardioList;
   }
 
-  showAllDetail(): string {
-    let content = '====今日训练详情====\n';
-    content += `训练日期：${this.getDate()}\n`;
-    if (this.remark && this.remark.trim() !== '') {
-      content += `训练备注：${this.remark}\n`;
-    }
-    content += '【力量训练】\n';
-    for (const log of this.workoutLogs) {
-      content += log.toString() + '\n';
-    }
-    content += `今日总训练容量：${this.getDailyTotalVolume()}\n`;
-    content += '【有氧训练】\n';
-    for (const cardio of this.cardioList) {
-      const line = `有氧：${cardio.getCardioName()}，时长：${cardio.getMinute()}分钟，预估消耗：${Math.round(cardio.calcBurn(this.person.getWeight()) + 0.5)}kcal`;
-      content += line + '\n';
-    }
-    const totalBurn = this.getStrengthBurn() + this.getCardioBurn();
-    content += `今日训练额外消耗：${totalBurn}`;
-    return content;
+  /**
+   * 返回一个内容相同的新实例。用于状态层「可变对象 + 不可变引用」更新，
+   * 保证 zustand 选择器订阅能感知变化。
+   */
+  clone(): DailyTraining {
+    const copy = new DailyTraining(this.person);
+    copy.setTrainDate(this.date);
+    copy.remark = this.remark;
+    copy.workoutLogs = [...this.workoutLogs];
+    copy.cardioList = [...this.cardioList];
+    return copy;
   }
 }

@@ -198,6 +198,7 @@ export const zh = {
   'lib.addMuscle': '添加肌肉',
   'lib.nameRequired': '动作名称不能为空',
   'lib.saveFail': '保存失败',
+  'lib.invalidNumbers': '组数/次数/MET 等数值必须大于0',
   'lib.saveExercise': '保存动作',
   'lib.saveCardio': '保存有氧动作',
 } as const;
@@ -404,12 +405,7 @@ export const en: Record<TKey, string> = {
   'lib.addMuscle': 'Add Muscle',
   'lib.nameRequired': 'Name cannot be empty',
   'lib.saveFail': 'Save failed',
+  'lib.invalidNumbers': 'Sets/reps/MET values must be greater than 0',
   'lib.saveExercise': 'Save Exercise',
   'lib.saveCardio': 'Save Cardio',
 };
-
-export function formatKey(key: TKey, params?: Record<string, string | number>): string {
-  const template = en[key];
-  if (!params) return template;
-  return template.replace(/\{(\w+)\}/g, (_, name: string) => String(params[name] ?? ''));
-}

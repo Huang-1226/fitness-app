@@ -27,8 +27,14 @@ export function AddCardioModal({
       setErr(t('lib.nameRequired'));
       return;
     }
+    const metValue = Number(met);
+    const duration = Number(minutes);
+    if (!metValue || metValue <= 0 || !duration || duration <= 0) {
+      setErr(t('lib.invalidNumbers'));
+      return;
+    }
     try {
-      await onAdd(new CardioTemplate(name.trim(), Number(met), Number(minutes), tip.trim()));
+      await onAdd(new CardioTemplate(name.trim(), metValue, duration, tip.trim()));
       onClose();
     } catch (e) {
       setErr(e instanceof Error ? e.message : t('lib.saveFail'));

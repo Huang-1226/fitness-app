@@ -70,20 +70,6 @@ export function calculateFullNutrition(
   return { targetCal, proteinG: protein, fatG: fat, carbG: carb, warn };
 }
 
-export function formatNutritionResult(result: NutritionResult): string {
-  const targetCalStr = `${Math.round(result.targetCal)}`;
-  const proteinStr = `${Math.round(result.proteinG * 10) / 10}`;
-  const fatStr = `${Math.round(result.fatG * 10) / 10}`;
-  const carbStr = `${Math.round(result.carbG * 10) / 10}`;
-  return (
-    '===每日饮食方案===\n' +
-    `目标摄入热量：${targetCalStr} kcal\n` +
-    `蛋白质：${proteinStr} g\n` +
-    `脂肪：${fatStr} g\n` +
-    `碳水：${carbStr} g`
-  );
-}
-
 export type MealKey = 'breakfast' | 'lunch' | 'dinner';
 
 export interface MealSplit {

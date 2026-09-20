@@ -78,14 +78,4 @@ export class WorkoutLog {
   getSetRecords(): SetRecord[] {
     return [...this.setRecords];
   }
-
-  toString(): string {
-    if (!this.exercise) return '空训练记录';
-    let result = `训练动作:${this.exercise.getName()}`;
-    for (let i = 0; i < this.setRecords.length; i++) {
-      result += ` 组${i + 1}:${this.setRecords[i].getTrainWeight()}kg*${this.setRecords[i].getReps()} `;
-    }
-    result += ` 总训练容量：${this.getTrainVolume()}`;
-    return result;
-  }
 }

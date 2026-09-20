@@ -28,6 +28,11 @@ assertClose(p.getTDEE(3), 1698.75 * 1.55, 'TDEE level3');
 const f = Person.createPerson('female', 160, 50, 22);
 assertClose(f.getBMR(), 10 * 50 + 6.25 * 160 - 5 * 22 - 161, 'BMR female');
 
+const w = Person.createPerson('male', 180, 80, 30);
+w.setWeight(85);
+assertClose(w.getWeight(), 85, 'setWeight updates weight');
+assertClose(w.getBMR(), 10 * 85 + 6.25 * 180 - 5 * 30 + 5, 'setWeight recalculates BMR');
+
 const lib = new WorkoutLibrary();
 assertTrue(lib.getAllExercises().length === 53, `default exercises count = 53 (got ${lib.getAllExercises().length})`);
 assertTrue(lib.getExerciseByName('杠铃深蹲') !== null, 'find exercise by name');

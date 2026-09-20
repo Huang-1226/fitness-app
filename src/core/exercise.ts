@@ -73,12 +73,4 @@ export class Exercise {
   equals(other: Exercise): boolean {
     return this.name === other.name;
   }
-
-  toString(): string {
-    let muscleInfo = '';
-    for (const mr of this.muscleRatios) {
-      muscleInfo += `${mr.getMuscleName()}(${mr.getRatio()}%) `;
-    }
-    return `动作：${this.name} | 目标肌群：${this.trainGroup} | 锻炼肌肉及其占比：${muscleInfo} | 新手推荐：${this.sets}组 × ${this.reps}次`;
-  }
 }

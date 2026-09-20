@@ -45,7 +45,7 @@ export const useLibraryStore = create<LibraryState>()((set, get) => ({
     const lib = get().library;
     if (lib.getExerciseByName(e.getName()) === null) {
       lib.addExercise(e);
-      set({ library: lib });
+      set({ library: lib.clone() });
     }
     await exercisesTable.put({ name: e.getName(), data: exerciseToDTO(e) });
   },
@@ -54,7 +54,7 @@ export const useLibraryStore = create<LibraryState>()((set, get) => ({
     const lib = get().library;
     if (lib.getCardioByName(t.name) === null) {
       lib.addCardioTemplate(t);
-      set({ library: lib });
+      set({ library: lib.clone() });
     }
     await cardioTemplatesTable.put({ name: t.name, data: cardioTemplateToDTO(t) });
   },
