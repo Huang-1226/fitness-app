@@ -1,85 +1,91 @@
-# 🏋️ Fitness App (React PWA)
+# Fitness App (React PWA)
 
-个人健身与营养管理系统的 **跨平台 PWA 版本**，由 Java 命令行版（`../fitness`）迁移而来。
+A cross-platform PWA version of the Java **Fitness Management System**. The app is a pure frontend with local persistence: no server, no account, and no app store required.
 
-- **零服务器**：纯前端 + 本地持久化（IndexedDB），数据永远在手机本地
-- **跨平台**：Android / iPhone / 桌面浏览器通用，可"添加到主屏幕"全屏使用
-- **离线可用**：Service Worker 缓存全部静态资源，断网照常使用
-- **免上架**：APK/商店都不需要，GitHub Pages / Vercel 静态托管即可
+- **No server:** static frontend plus IndexedDB; data stays on the device.
+- **Cross-platform:** works on Android, iPhone, and desktop browsers; can be added to the home screen and run full-screen.
+- **Offline:** a service worker caches the app shell and assets, so it keeps working without a network.
+- **No app store:** deploy to GitHub Pages or Vercel as a static site.
 
-## 技术栈
+## Live demo
 
-- **语言**：TypeScript（业务逻辑由 Java 逐行移植）
-- **框架**：React 19 + Vite
-- **状态管理**：Zustand
-- **本地数据库**：IndexedDB + Dexie
-- **PWA**：vite-plugin-pwa（自动生成 manifest + Service Worker）
+https://huang-1226.github.io/fitness-app/
 
-## 架构
+## Tech stack
 
-```
+- **Language:** TypeScript (business logic ported from the Java version)
+- **Framework:** React 19 + Vite
+- **State management:** Zustand
+- **Local database:** IndexedDB + Dexie
+- **PWA:** `vite-plugin-pwa` (manifest + service worker)
+
+## Architecture
+
+```text
 src/
-├── core/        # 业务逻辑（从 src/model + util + workout 移植，纯计算无 UI）
-│   ├── person.ts              ← Person.java   (BMI/BMR/TDEE/体重追踪)
-│   ├── dailyTraining.ts       ← DailyTraining.java
-│   ├── workoutLog.ts          ← WorkoutLog.java
-│   ├── cardioRecord.ts        ← CardioRecord.java
-│   ├── exercise.ts            ← Exercise.java
-│   ├── muscleRecoverRule.ts   ← MuscleRecoverRule.java (枚举→常量)
-│   ├── nutritionCalculator.ts ← NutritionCalculator.java
-│   └── workoutLibrary.ts      ← WorkoutLibrary.java (53 个默认动作)
-├── db/          # 持久化层
-│   ├── types.ts               # 序列化 DTO（IndexedDB 存对象，需显式建模）
-│   ├── converters.ts          # class ⇄ DTO 双向转换
-│   └── db.ts                  # Dexie 表定义
-├── store/       # Zustand 状态层（对应 Main.java 里的内存变量）
+├── core/        # business logic ported from the Java model/util/workout layers
+│   ├── person.ts
+│   ├── dailyTraining.ts
+│   ├── workoutLog.ts
+│   ├── cardioRecord.ts
+│   ├── exercise.ts
+│   ├── muscleRecoverRule.ts
+│   ├── nutritionCalculator.ts
+│   └── workoutLibrary.ts
+├── db/          # persistence layer
+│   ├── types.ts             # IndexedDB DTOs
+│   ├── converters.ts        # class ⇄ DTO conversion
+│   └── db.ts                # Dexie table definitions
+├── store/       # Zustand state layer
 │   ├── userStore.ts
 │   ├── trainingStore.ts
 │   └── libraryStore.ts
-└── ui/          # React 界面层（对应 Main.java 的 CLI 菜单）
+└── ui/          # React interface
     ├── components/
-    └── pages/   # 首页 / 训练 / 记录 / 计划 / 动作库
+    └── pages/   # home, training, history, plans, exercise library
 ```
 
-### 数据流
+### Data flow
 
-```
-用户操作 → React 组件 → Zustand action → core 业务函数 → Dexie 写 IndexedDB
-                               ↑                                ↓
-                          状态更新渲染  ←────────────────── 数据查询
+```text
+user action → React component → Zustand action → core function → Dexie/IndexedDB
+                                   ↑                              ↓
+                              state update ←──────────────── data query
 ```
 
-`Main.java` 的三个序列化文件映射：
+The three Java serialization files map to IndexedDB tables:
 
 | Java CLI | PWA |
 |---|---|
-| `user.dat` | users 表（id=1） |
-| `history.dat` | trainings 表（date 为主键） |
-| `exercise.dat` | exercises 表（name 为主键） |
+| `user.dat` | `users` table (id = 1) |
+| `history.dat` | `trainings` table (date as key) |
+| `exercise.dat` | `exercises` table (name as key) |
 
-## 快速开始
+## Quick start
 
 ```bash
 npm install
-npm run dev      # 本地开发 http://localhost:5173
-npm run build    # 产物在 dist/
-npm run preview  # 预览生产构建
-npm run verify   # 逻辑层回归测试（tsx scripts/verify.ts）
+npm run dev      # local development at http://localhost:5173
+npm run build    # production build in dist/
+npm run preview  # preview the production build
+npm run verify   # logic-layer regression test (tsx scripts/verify.ts)
 ```
 
-## 部署到 GitHub Pages（零服务器）
+## Deploy to GitHub Pages
 
 ```bash
 npm run build
-# 把 dist/ 内容推到 gh-pages 分支，或直接用 GitHub Actions 自动部署
+# push dist/ to the gh-pages branch, or deploy with a GitHub Actions workflow
 ```
 
-仓库设置 → Pages → 选择分支即可。部署后 iPhone/Android 打开链接 → 分享 → 添加到主屏幕。
+Then enable GitHub Pages for the repository. When deploying to a subpath, set `base` in `vite.config.ts` (for example, `/fitness-app/`). On a phone, open the live URL and choose “Add to Home Screen”.
 
-> 注意：部署到子路径时需在 `vite.config.ts` 设置 `base`（如 `/fitness-app/`）。
+## Relationship to the Java version
 
-## 与 Java 版的功能对应
+The 19 CLI menu functions are mapped to five pages: profile/BMI, weight tracking, today's training (strength, cardio, calories, archive), history and 7-day statistics, workout plans, muscle filtering, diet plan, and the exercise library.
 
-19 个 CLI 菜单功能已全部映射到 5 个页面：档案/BMI、体重追踪、今日训练（力量/有氧/消耗/归档）、历史与近7天统计、训练计划生成、肌群筛选、饮食方案、动作库增删。
+The original Java project is [FitnessManagementSystem](https://github.com/Huang-1226/FitnessManagementSystem).
 
-**© 2026 Huang1226** | [原项目 GitHub](https://github.com/Huang-1226)
+---
+
+© 2026 Huang1226 · [GitHub](https://github.com/Huang-1226)
